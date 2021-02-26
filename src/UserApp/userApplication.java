@@ -1,11 +1,11 @@
 package UserApp;
 
 
-import java.util.Arrays;
-
 public class userApplication {
 
     /**
+     * Runs all the tests required.
+     *
      * @param args program arguments:
      *             1. Echo request code   : E_XXXX
      *             2. Image request code  : M_XXXX  (Tx/Rx error free)
@@ -13,27 +13,25 @@ public class userApplication {
      *             4. GPS request code    : P_XXXX
      *             5. ACK result code     : Q_XXXX
      *             6. NACK result code    : R_XXXX
-     *
      */
     public static void main(String[] args){
+        // Check if the arguments are correct
         if (args.length != 6){
-            System.out.println("Wrong arguments");
+            System.out.println("Expected: <EXXXX> <MXXXX> <GXXXX> <PXXXX> <QXXXX> <RXXXX> as arguments");
             return;
         }
 
-        System.out.println(Arrays.toString(args));
+        Connection connection = new Connection(args[0], args[1], args[2], args[3], args[4], args[5], 76000, 10000);
 
-        Tasks tasks = new Tasks(args[0], args[1], args[2], args[3], args[4], args[5]);
+        EchoPackets echoPackets = new EchoPackets(connection);
+        ImagePackets imagePackets = new ImagePackets(connection, Commands.MOVING_CAM.getStr() + Commands.MOVE_RIGHT.getStr());
 
-        tasks.testConnection();
+        //echoPackets.getEchoPackets(5);
 
-        tasks.getEchoPackets(10);
+        for (int i = 0; i<=20; i++) {
+            imagePackets.getImage(false);
+        }
 
-//        for (int i = 0; i<=10; i++){
-//            tasks.getImages();
-//
-//        }
-
-        tasks.modem.close();
+        connection.getModem().close();
     }
 }
