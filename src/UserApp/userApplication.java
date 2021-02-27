@@ -25,12 +25,15 @@ public class userApplication {
 
         EchoPackets echoPackets = new EchoPackets(connection);
         ImagePackets imagePackets = new ImagePackets(connection, Commands.MOVING_CAM.getStr() + Commands.MOVE_RIGHT.getStr());
+        GPSPackets gpsPackets = new GPSPackets(connection);
+
+        gpsPackets.getGPSPackets();
 
         //echoPackets.getEchoPackets(5);
 
-        for (int i = 0; i<=20; i++) {
-            imagePackets.getImage(false);
-        }
+//        for (int i = 0; i<=20; i++) {
+//            imagePackets.getImage(false);
+//        }
 
         connection.getModem().close();
     }

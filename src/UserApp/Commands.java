@@ -18,6 +18,13 @@ public enum Commands {
     SM_END("\r\n\n\n"),
     PACKET_END("PSTOP"),
     AT_END("\r\n"),
+    GPS_DATA_LINE_END("\r\n"),
+    GPS_TRANSMISSION_END("STOP ITHAKI GPS TRACKING\r\n"),
+
+    GPS_TRANSMISSION_START("START ITHAKI GPS TRACKING\r\n"),
+    GPGGA("$GPGGA"),
+    GPGSA("$GPGSA"),
+    GPRMC("$GPRMC"),
 
     //Camera Controls
     STEADY_CAM("CAM=FIX"),
