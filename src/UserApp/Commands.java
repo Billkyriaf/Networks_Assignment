@@ -20,7 +20,6 @@ public enum Commands {
     AT_END("\r\n"),
     GPS_DATA_LINE_END("\r\n"),
     GPS_TRANSMISSION_END("STOP ITHAKI GPS TRACKING\r\n"),
-
     GPS_TRANSMISSION_START("START ITHAKI GPS TRACKING\r\n"),
     GPGGA("$GPGGA"),
     GPGSA("$GPGSA"),
