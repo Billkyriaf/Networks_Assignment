@@ -23,17 +23,27 @@ public class userApplication {
 
         Connection connection = new Connection(args[0], args[1], args[2], args[3], args[4], args[5], 76000, 10000);
 
-        EchoPackets echoPackets = new EchoPackets(connection);
-        ImagePackets imagePackets = new ImagePackets(connection, Commands.MOVING_CAM.getStr() + Commands.MOVE_RIGHT.getStr());
-        GPSPackets gpsPackets = new GPSPackets(connection);
+        // Echo packets
+        EchoPackets echoPackets = new EchoPackets(connection, 100);
 
-        gpsPackets.getGPSPackets();
+        // Image packets
+        ImagePackets clear_image = new ImagePackets(connection, false);
 
-        //echoPackets.getEchoPackets(5);
+        ImagePackets corrupted_image = new ImagePackets(connection, true);
 
-//        for (int i = 0; i<=20; i++) {
-//            imagePackets.getImage(false);
-//        }
+        // GPS packets
+        GPSPackets gpsData = new GPSPackets(connection);
+
+
+
+        // Run some tests
+        echoPackets.getPackets();
+
+        clear_image.getPackets();
+
+        corrupted_image.getPackets();
+
+        gpsData.getPackets();
 
         connection.getModem().close();
     }
