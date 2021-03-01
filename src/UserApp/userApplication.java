@@ -32,16 +32,16 @@ public class userApplication {
         ImagePackets corrupted_image = new ImagePackets(connection, true);
 
         // GPS packets
-        GPSPackets gpsData = new GPSPackets(connection);
+        GPSPackets gpsData = new GPSPackets(connection, new ImagePackets(connection, false));
 
 
 
         // Run some tests
-        echoPackets.getPackets();
+        //echoPackets.getPackets();
 
-        clear_image.getPackets();
+        //clear_image.getPackets();
 
-        corrupted_image.getPackets();
+        //corrupted_image.getPackets();
 
         gpsData.getPackets();
 
