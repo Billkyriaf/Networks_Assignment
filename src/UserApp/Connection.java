@@ -3,7 +3,7 @@ package UserApp;
 import ithakimodem.Modem;
 
 /**
- * This class provides functions for all the types of connections needed with the server
+ * The connection class handles the initial connection to the server and the connection mode selection.
  */
 public class Connection {
 
@@ -24,6 +24,8 @@ public class Connection {
      * @param gps       GPS request code    : P_XXXX
      * @param ack       ACK result code     : Q_XXXX
      * @param nack      NACK result code    : R_XXXX
+     * @param speed     Speed of the connection
+     * @param timeout   Timeout time in seconds for the connection
      */
     public Connection(String echo, String image, String image_err, String gps, String ack, String nack, int speed, int timeout) {
         // Create a new Modem object
@@ -97,9 +99,10 @@ public class Connection {
 
 
     /**
-     * Test the connection with AT commands
+     * Test the connection to the modem with AT commands. The test connection must only be called before the modem enters
+     * data mode.
      */
-    public void testConnection() {
+    private void testConnection() {
         // TODO implement correctly
         StringBuilder packet = new StringBuilder();  // Complete packet
 
@@ -137,6 +140,7 @@ public class Connection {
         }
     }
 
+
     /**
      * Compares a message's end with a pattern string
      * @param message the message that is received
@@ -148,6 +152,7 @@ public class Connection {
             return false;
         } else return message.endsWith(pattern);
     }
+
 
     /**
      * Starts the data connection with the server
