@@ -54,5 +54,35 @@ public class gpsGPGGA {
     public String getLine() {
         return this.line;
     }
+
+    public String getCoordinates(){
+        String longitude_deg = this.longitude.substring(1, 3);
+        String longitude_min = this.longitude.substring(3, 5);
+        String longitude_sec = "0" + this.longitude.substring(5);
+
+        double long_sec = Double.parseDouble(longitude_sec);
+
+        long_sec = long_sec * 60;
+
+        longitude_sec = String.valueOf((int)Math.round(long_sec));
+
+        String longitude = longitude_deg + longitude_min + longitude_sec;
+
+
+        String latitude_deg = this.latitude.substring(0, 2);
+        String latitude_min = this.latitude.substring(2, 4);
+        String latitude_sec = "0" + this.latitude.substring(4);
+
+        double lat_sec = Double.parseDouble(latitude_sec);
+
+        lat_sec = lat_sec * 60;
+
+        latitude_sec = String.valueOf((int)Math.round(lat_sec));
+
+        String latitude = latitude_deg + latitude_min + latitude_sec;
+
+
+        return longitude + latitude;
+    }
 }
 
