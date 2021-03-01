@@ -1,5 +1,6 @@
 package UserApp;
 
+import Stracture.DataPackets;
 import com.google.common.primitives.Bytes;
 import ithakimodem.Modem;
 
@@ -14,30 +15,44 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-public class ImagePackets {
+public class ImagePackets implements DataPackets {
 
     private final Connection connection;
-    private String camera_commands;
+
+    private String camera_commands;  // Camera moving commands (U, D, etc)
+    private boolean has_errors;  // Indicates if the images requested have errors
+
+    private final List<Byte> image;  // List with all the bytes of the image
 
 
     /**
      * Constructor
      * @param connection the connection object
+     * @param has_errors determines if the requested image will have errors or it will be clear
      */
-    public ImagePackets(Connection connection){
+    public ImagePackets(Connection connection, boolean has_errors){
         this.connection = connection;
         this.camera_commands = null;
+        this.image = new ArrayList<>();
+        this.has_errors = has_errors;
     }
 
     /**
      * Constructor
      * @param connection the connection object
      * @param camera_commands special camera commands (direction, size, etc)
+     * @param has_errors determines if the requested image will have errors or it will be clear
      */
-    public ImagePackets(Connection connection, String camera_commands){
+    public ImagePackets(Connection connection, String camera_commands, boolean has_errors){
         this.connection = connection;
         setCamera_commands(camera_commands);
+        this.image = new ArrayList<>();
+        this.has_errors = has_errors;
     }
+
+
+
+    // ===============================  Getters - Setters  ===============================
 
     /**
      * Sets this.camera_command and updates the values in the Connection object
@@ -66,19 +81,30 @@ public class ImagePackets {
         this.connection.setImage_code_error(image_code_error);
     }
 
+    public void setHas_errors(boolean has_errors){
+        this.has_errors = has_errors;
+    }
+
+    public boolean getHas_errors(){
+        return this.has_errors;
+    }
+
+
+
+    // ===============================  Interface methods  ===============================
+
     /**
-     * Gets images from the server.
-     * @param has_errors Indicates if a corrupted image will be fetched
+     * Gets images from the server and saves them to a file
      */
-    public void getImage(Boolean has_errors) {
+    @Override
+    public void getPackets() {
         int k;  // The input buffer byte
-        List<Byte> image = new ArrayList<>();
-        String request_code;
+        String request_code;  // The request code for the image
 
         Modem modem = this.connection.getModem();
 
         // Choose from between a request with errors and an error free request
-        if (has_errors){
+        if (this.has_errors){
             request_code = this.connection.getImage_code_error();
         }
         else {
@@ -87,6 +113,7 @@ public class ImagePackets {
 
         // Request the image
         if (modem.write(request_code.getBytes())) {
+            System.out.println("Receiving image ...");
             while (true) {
                 try {
                     // Read the bytes
@@ -99,10 +126,15 @@ public class ImagePackets {
                     }
 
                     // Add bytes to the image Byte List
-                    image.add((byte)k);
+                    this.image.add((byte)k);
 
                     // Detect end of image
-                    if (isImageComplete(image)) break;
+                    if (isTransmissionOver()){
+                        // Finally the image to the file
+                        saveToFile(createFileName());
+                        this.image.clear();
+                        break;
+                    }
 
                 } catch (Exception x) {
                     System.out.println("Exception thrown: " + x.toString());
@@ -112,8 +144,6 @@ public class ImagePackets {
 
             System.out.println("Image received\n\n");
 
-            saveImageToFile(image, has_errors);
-
         } else {
             System.out.println("Failed to send image code");
         }
@@ -121,58 +151,28 @@ public class ImagePackets {
 
     /**
      * Compares the last elements of the list with 0xFF 0xD9 jpeg end bytes
-     * @param list the data list
      * @return true if all the elements are found false else
      */
-    private boolean isImageComplete(List<Byte> list){
+    @Override
+    public boolean isTransmissionOver() {
         // If the list is smaller than the pattern return false
-        if (list.size() < 2) {
+        if (this.image.size() < 2) {
             return false;
         } else {
-            return list.get(list.size() - 1).equals((byte) 217) && list.get(list.size() - 2).equals((byte) 255);
+            return this.image.get(this.image.size() - 1).equals((byte) 217) && this.image.get(this.image.size() - 2).equals((byte) 255);
         }
     }
 
     /**
-     * Gets the current date time and formats it
-     * @return Datetime in the form of "yyyy-MM-dd HH-mm-ss"
-     */
-    private String getDate(){
-        String pattern = "yyyy-MM-dd HH-mm-ss";
-
-        // Create an instance of SimpleDateFormat used for formatting
-        // the string representation of date according to the chosen pattern
-        DateFormat df = new SimpleDateFormat(pattern);
-
-        // Get the today date using Calendar object.
-        Date today = Calendar.getInstance().getTime();
-
-        // Using DateFormat format method we can create a string
-        // representation of a date with the defined format.
-
-        return df.format(today);
-    }
-
-    /**
      * Save an image in the form of a Byte List to a .jpeg file
-     * @param image The bytes of the image
-     * @param has_errors Is the image corrupted
+     * @param file_name the name of the file
      */
-    private void saveImageToFile(List<Byte> image, Boolean has_errors){
+    @Override
+    public void saveToFile(String file_name) {
         // Convert the bytes to an Image file
         try {
             // Create an input stream from the bytes of the image
-            InputStream is = new ByteArrayInputStream(Bytes.toArray(image));
-
-            String file_name;
-
-            // File to save image
-            if (has_errors) {
-                file_name = "Received_images/" + "Corrupted_image " + getDate() + ".jpeg";
-            }
-            else {
-                file_name = "Received_images/" + "Clear_image " + getDate() + ".jpeg";
-            }
+            InputStream is = new ByteArrayInputStream(Bytes.toArray(this.image));
 
             FileOutputStream out = new FileOutputStream(file_name);
 
@@ -193,5 +193,29 @@ public class ImagePackets {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Gets the current date time and formats it "yyyy-MM-dd HH-mm-ss"
+     * @return name + date + .jpeg
+     */
+    @Override
+    public String createFileName() {
+        // Create the name of the image file depending on the errors
+        String name = has_errors ? "Images/Corrupted_image " : "Images/Clear_image ";
+
+        String pattern = "yyyy-MM-dd HH-mm-ss";
+
+        // Create an instance of SimpleDateFormat used for formatting
+        // the string representation of date according to the chosen pattern
+        DateFormat df = new SimpleDateFormat(pattern);
+
+        // Get the today date using Calendar object.
+        Date today = Calendar.getInstance().getTime();
+
+        // Using DateFormat format method we can create a string
+        // representation of a date with the defined format.
+
+        return name + df.format(today) + ".jpeg";
     }
 }
