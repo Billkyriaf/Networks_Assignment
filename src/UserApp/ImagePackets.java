@@ -89,6 +89,9 @@ public class ImagePackets implements DataPackets {
         return this.has_errors;
     }
 
+    public void addToImageList(byte k){
+        this.image.add(k);
+    }
 
 
     // ===============================  Interface methods  ===============================
