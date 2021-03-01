@@ -1,5 +1,7 @@
-package Data;
+package Stracture;
 
+
+import java.util.Arrays;
 
 public class gpsGPGGA {
     final String message_ID = "$GPGGA";
@@ -24,7 +26,9 @@ public class gpsGPGGA {
     public gpsGPGGA(String line){
         this.line = line;
 
-        String[] parsed_message = this.line.split(",");
+        String[] parsed_message = this.line.split(",|\\*");
+
+//        System.out.println(Arrays.toString(parsed_message));
 
         if (parsed_message.length == 16) {
             this.utcTime = parsed_message[1];
@@ -47,4 +51,8 @@ public class gpsGPGGA {
         }
     }
 
+    public String getLine() {
+        return this.line;
+    }
 }
+
