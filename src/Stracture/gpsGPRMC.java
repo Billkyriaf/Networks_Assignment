@@ -1,4 +1,4 @@
-package Data;
+package Stracture;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,9 +25,9 @@ public class gpsGPRMC {
     public gpsGPRMC(String line){
         this.line = line;
 
-        String[] parsed_message = this.line.split(",");
+        String[] parsed_message = this.line.split(",|\\*");
 
-        if (parsed_message.length == 13) {
+        if (parsed_message.length == 14) {
             this.utcTime = parsed_message[1];
             this.status = parsed_message[2];
             this.latitude = parsed_message[3];
@@ -38,11 +38,15 @@ public class gpsGPRMC {
             this.course_over_ground = parsed_message[8];
             this.date = parsed_message[9];
             this.magnetic_variation = parsed_message[10];
-            this.mode = parsed_message[11];
-            this.checksum = parsed_message[12];
+            this.mode = parsed_message[12];
+            this.checksum = parsed_message[13];
 
         } else {
             System.out.println("Error parsing data too many or too few arguments!");
         }
+    }
+
+    public String getLine() {
+        return this.line;
     }
 }

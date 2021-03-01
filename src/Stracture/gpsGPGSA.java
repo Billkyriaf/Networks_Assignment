@@ -1,4 +1,4 @@
-package Data;
+package Stracture;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +19,7 @@ public class gpsGPGSA {
     public gpsGPGSA(String line){
         this.line = line;
         this.satellites = new ArrayList<>();
-        String[] parsed_message = this.line.split(",");
+        String[] parsed_message = this.line.split(",|\\*");
 
         if (parsed_message.length == 19) {
             this.mode_1 = parsed_message[1];
@@ -33,5 +33,9 @@ public class gpsGPGSA {
         else {
             System.out.println("Error parsing data too many or too few arguments!");
         }
+    }
+
+    public String getLine() {
+        return this.line;
     }
 }
