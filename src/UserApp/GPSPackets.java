@@ -25,14 +25,21 @@ public class GPSPackets implements DataPackets {
 
     private final StringBuilder gps_line = new StringBuilder();
 
+    private final ImagePackets imagePackets;
 
-    public GPSPackets(Connection connection) {
+
+    public GPSPackets(Connection connection, ImagePackets imagePackets) {
         this.connection = connection;
 
         this.gpsGPGGAList = new ArrayList<>();
         this.gpsGPGSAList = new ArrayList<>();
         this.gpsGPRMCList = new ArrayList<>();
+
+        this.imagePackets = imagePackets;
     }
+
+
+    // ===============================  Interface methods  ===============================
 
     /**
      * Gets gps packages from the server and saves them to a file
@@ -44,7 +51,7 @@ public class GPSPackets implements DataPackets {
         String request_code = connection.getGps_code();
         int k; // input bytes
 
-        // Request the image
+        // Request the gps data
         if (modem.write((request_code).getBytes())) {
             System.out.println("Receiving gps data ...");
             while (true) {
@@ -58,10 +65,10 @@ public class GPSPackets implements DataPackets {
                         break;
                     }
 
-                    // Add bytes to the image Byte List
+                    // Add chars to the string line
                     this.gps_line.append((char) k);
 
-                    
+
                     // Detect end of line or end of transmission
                     if (isTransmissionOver()){
                         System.out.print("\n");
@@ -77,13 +84,17 @@ public class GPSPackets implements DataPackets {
 
             // System.out.println("GPS data received: " + gps_line.toString()); // DEBUG comment
 
-            //Save data to file
+            // Request visualization images
             parseData();
+            getImages(modem, request_code);
+
+            //Save data to file
             saveToFile(createFileName());
 
 
+
         } else {
-            System.out.println("Failed to send image code");
+            System.out.println("Failed to send gps code");
         }
     }
 
@@ -189,6 +200,10 @@ public class GPSPackets implements DataPackets {
         return name + df.format(today) + ".txt";
     }
 
+
+
+    // ===============================  Class methods  ===============================
+
     /**
      * Categorises data based on the type of the protocol
      */
@@ -212,6 +227,60 @@ public class GPSPackets implements DataPackets {
                 gpsGPRMC tmp = new gpsGPRMC(line);
                 this.gpsGPRMCList.add(tmp);
                 this.gps_line.setLength(0);
+            }
+        }
+    }
+
+    /**
+     * Gets visualized images for the gps data
+     * @param modem the modem of the connection
+     */
+    private void getImages(Modem modem, String request_code){
+        int k;
+
+        // request data visualization
+        for (gpsGPGGA data: this.gpsGPGGAList) {
+            String tParam = data.getCoordinates();
+
+            if (modem.write((request_code + "T=" + tParam).getBytes())) {
+                System.out.println("Receiving gps image data ...");
+                while (true) {
+                    try {
+                        // Read the bytes
+                        k = modem.read();
+
+                        // if -1 is read there was an error and the connection timed out
+                        if (k == -1) {
+                            System.out.println("Connection timed out.");
+                            break;
+                        }
+
+                        System.out.print((byte)k + " ");
+
+                        // Add bytes to the image Byte List
+                        this.imagePackets.addToImageList((byte) k);
+
+
+                        // Detect end of line or end of transmission
+                        if (this.imagePackets.isTransmissionOver()) {
+                            String name = createFileName().split("\\.")[0] + ".jpeg";
+
+                            // Build the new name GPS/GPS Images/GPS_Data yyyy-MM-dd HH-mm-ss.jpeg
+                            name = name.substring(0, 4) + "GPS Images/" + name.substring(4);
+
+                            // Save the image to a file
+                            this.imagePackets.saveToFile(name);
+                            break;
+                        }
+
+
+                    } catch (Exception x) {
+                        System.out.println("Exception thrown: " + x.toString());
+                        break;
+                    }
+                }
+            } else {
+                System.out.println("Failed to send gps code");
             }
         }
     }
