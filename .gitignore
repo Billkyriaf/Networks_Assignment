@@ -111,8 +111,8 @@ hs_err_pid*
 # End of https://www.toptal.com/developers/gitignore/api/intellij+iml,java
 Received_images/
 
-Images/
+Images_Saved_Data/
 
-GPS/
+GPS_Saved_Data/
 
-EchoPackets/
+Echo_Saved_Data/

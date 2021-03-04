@@ -1,9 +1,9 @@
-package UserApp;
+package GPS;
 
 import Stracture.DataPackets;
-import Stracture.gpsGPGGA;
-import Stracture.gpsGPGSA;
-import Stracture.gpsGPRMC;
+import Stracture.Commands;
+import Stracture.Connection;
+import Image.ImagePackets;
 import ithakimodem.Modem;
 
 import java.io.FileWriter;

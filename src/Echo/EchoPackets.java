@@ -1,6 +1,8 @@
-package UserApp;
+package Echo;
 
 import Stracture.DataPackets;
+import Stracture.Commands;
+import Stracture.Connection;
 
 import java.io.*;
 import java.text.DateFormat;

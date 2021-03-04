@@ -1,7 +1,7 @@
-package UserApp;
+package Stracture;
 
 public enum Commands {
-    // AT UserApp.Commands
+    // AT Stracture.Commands
     AT("AT\r"),
     ATI("ATI\r"),
     ATS("ATS\r"),

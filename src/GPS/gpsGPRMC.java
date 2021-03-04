@@ -1,8 +1,4 @@
-package Stracture;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+package GPS;
 
 public class gpsGPRMC {
     final String message_ID = "$GPRMC";

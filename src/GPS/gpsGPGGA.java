@@ -1,7 +1,6 @@
-package Stracture;
+package GPS;
 
 
-import java.util.Arrays;
 
 public class gpsGPGGA {
     final String message_ID = "$GPGGA";

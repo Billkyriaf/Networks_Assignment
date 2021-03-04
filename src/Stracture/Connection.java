@@ -1,5 +1,6 @@
-package UserApp;
+package Stracture;
 
+import Stracture.Commands;
 import ithakimodem.Modem;
 
 /**

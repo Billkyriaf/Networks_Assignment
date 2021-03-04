@@ -1,6 +1,7 @@
-package UserApp;
+package Image;
 
 import Stracture.DataPackets;
+import Stracture.Connection;
 import com.google.common.primitives.Bytes;
 import ithakimodem.Modem;
 
