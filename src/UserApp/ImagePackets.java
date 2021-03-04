@@ -93,6 +93,9 @@ public class ImagePackets implements DataPackets {
         this.image.add(k);
     }
 
+    public void clearImageList(){
+        this.image.clear();
+    }
 
     // ===============================  Interface methods  ===============================
 

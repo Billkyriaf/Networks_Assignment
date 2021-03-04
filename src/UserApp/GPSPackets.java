@@ -240,9 +240,11 @@ public class GPSPackets implements DataPackets {
 
         // request data visualization
         for (gpsGPGGA data: this.gpsGPGGAList) {
-            String tParam = data.getCoordinates();
+            String coordinates = data.getCoordinates();
 
-            if (modem.write((request_code + "T=" + tParam).getBytes())) {
+            String request = request_code.substring(0, 5) + "T=" + coordinates + "\r";
+
+            if (modem.write((request).getBytes())) {
                 System.out.println("Receiving gps image data ...");
                 while (true) {
                     try {
@@ -255,11 +257,8 @@ public class GPSPackets implements DataPackets {
                             break;
                         }
 
-                        System.out.print((byte)k + " ");
-
                         // Add bytes to the image Byte List
                         this.imagePackets.addToImageList((byte) k);
-
 
                         // Detect end of line or end of transmission
                         if (this.imagePackets.isTransmissionOver()) {
@@ -270,6 +269,7 @@ public class GPSPackets implements DataPackets {
 
                             // Save the image to a file
                             this.imagePackets.saveToFile(name);
+                            this.imagePackets.clearImageList();
                             break;
                         }
 
