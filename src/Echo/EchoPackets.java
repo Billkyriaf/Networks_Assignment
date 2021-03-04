@@ -1,7 +1,7 @@
 package Echo;
 
 import Stracture.DataPackets;
-import Stracture.Commands;
+import Stracture.Constants;
 import Stracture.Connection;
 
 import java.io.*;
@@ -111,7 +111,7 @@ public class EchoPackets implements DataPackets {
         }
 
         // Save packets to a file
-        saveToFile(createFileName());
+        saveToFile(createFileName(Constants.ECHO_DATA_DIR.getStr(), ".txt"));
     }
 
     /**
@@ -120,7 +120,7 @@ public class EchoPackets implements DataPackets {
      */
     @Override
     public boolean isTransmissionOver() {
-        String packet_end = Commands.PACKET_END.getStr();
+        String packet_end = Constants.PACKET_END.getStr();
         if (this.packet.length() < packet_end.length()) {
             return false;
         } else return this.packet.toString().endsWith(packet_end);
@@ -157,9 +157,9 @@ public class EchoPackets implements DataPackets {
      * @return name + date + .txt
      */
     @Override
-    public String createFileName() {
+    public String createFileName(String directory, String file_extension) {
         // Create the name of the image file depending on the errors
-        String name = "EchoPackets/echo_packets ";
+        String name = "echo_packets ";
 
         String pattern = "yyyy-MM-dd HH-mm-ss";
 
@@ -173,6 +173,6 @@ public class EchoPackets implements DataPackets {
         // Using DateFormat format method we can create a string
         // representation of a date with the defined format.
 
-        return name + df.format(today) + ".txt";
+        return directory + name + df.format(today) + file_extension;
     }
 }

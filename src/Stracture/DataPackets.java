@@ -27,7 +27,7 @@ public interface DataPackets {
      * Returns a unique file name based on the current dateTime
      * @return name + dateTime
      */
-    String createFileName();
+    String createFileName(String directory, String file_extension);
     
 
 }

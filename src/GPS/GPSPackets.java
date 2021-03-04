@@ -1,7 +1,7 @@
 package GPS;
 
 import Stracture.DataPackets;
-import Stracture.Commands;
+import Stracture.Constants;
 import Stracture.Connection;
 import Image.ImagePackets;
 import ithakimodem.Modem;
@@ -89,7 +89,7 @@ public class GPSPackets implements DataPackets {
             getImages(modem, request_code);
 
             //Save data to file
-            saveToFile(createFileName());
+            saveToFile(createFileName(Constants.GPS_DATA_DIR.getStr(), ".txt"));
 
 
 
@@ -106,9 +106,9 @@ public class GPSPackets implements DataPackets {
      */
     @Override
     public boolean isTransmissionOver() {
-        String line_end = Commands.GPS_DATA_LINE_END.getStr();
-        String transmission_end = Commands.GPS_TRANSMISSION_END.getStr();
-        String transmission_start = Commands.GPS_TRANSMISSION_START.getStr();
+        String line_end = Constants.GPS_DATA_LINE_END.getStr();
+        String transmission_end = Constants.GPS_TRANSMISSION_END.getStr();
+        String transmission_start = Constants.GPS_TRANSMISSION_START.getStr();
 
         String gps_line = this.gps_line.toString();
 
@@ -181,9 +181,10 @@ public class GPSPackets implements DataPackets {
      * @return name + date + .txt
      */
     @Override
-    public String createFileName() {
+    public String createFileName(String directory, String file_extension) {
         // Create the name of the image file depending on the errors
-        String name = "GPS/GPS_Data ";
+
+        String name = "GPS_Data ";
 
         String pattern = "yyyy-MM-dd HH-mm-ss";
 
@@ -197,7 +198,9 @@ public class GPSPackets implements DataPackets {
         // Using DateFormat format method we can create a string
         // representation of a date with the defined format.
 
-        return name + df.format(today) + ".txt";
+        name = name + df.format(today) + file_extension;
+
+        return directory + name;
     }
 
 
@@ -210,19 +213,19 @@ public class GPSPackets implements DataPackets {
     private void parseData(){
 
         for (String line: this.lines) {
-            if (line.startsWith(Commands.GPGGA.getStr())){
+            if (line.startsWith(Constants.GPGGA.getStr())){
                 // save the GPGGA to the list and clear the buffer
                 gpsGPGGA tmp = new gpsGPGGA(line);
                 this.gpsGPGGAList.add(tmp);
                 this.gps_line.setLength(0);
             }
-            else if (line.startsWith(Commands.GPGSA.getStr())){
+            else if (line.startsWith(Constants.GPGSA.getStr())){
                 // save the GPGSA to the list and clear the buffer
                 gpsGPGSA tmp = new gpsGPGSA(line);
                 this.gpsGPGSAList.add(tmp);
                 this.gps_line.setLength(0);
             }
-            else if (line.startsWith(Commands.GPRMC.getStr())){
+            else if (line.startsWith(Constants.GPRMC.getStr())){
                 // save the GPRMC to the list and clear the buffer
                 gpsGPRMC tmp = new gpsGPRMC(line);
                 this.gpsGPRMCList.add(tmp);
@@ -262,10 +265,8 @@ public class GPSPackets implements DataPackets {
 
                         // Detect end of line or end of transmission
                         if (this.imagePackets.isTransmissionOver()) {
-                            String name = createFileName().split("\\.")[0] + ".jpeg";
-
-                            // Build the new name GPS/GPS Images/GPS_Data yyyy-MM-dd HH-mm-ss.jpeg
-                            name = name.substring(0, 4) + "GPS Images/" + name.substring(4);
+                            // Name of the file
+                            String name = createFileName(Constants.GPS_IMAGES_DIR.getStr(), ".jpeg");
 
                             // Save the image to a file
                             this.imagePackets.saveToFile(name);

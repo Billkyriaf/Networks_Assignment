@@ -1,5 +1,6 @@
 package Image;
 
+import Stracture.Constants;
 import Stracture.DataPackets;
 import Stracture.Connection;
 import com.google.common.primitives.Bytes;
@@ -138,7 +139,7 @@ public class ImagePackets implements DataPackets {
                     // Detect end of image
                     if (isTransmissionOver()){
                         // Finally the image to the file
-                        saveToFile(createFileName());
+                        saveToFile(createFileName(Constants.IMAGES_DATA_DIR.getStr(), ".jpeg"));
                         this.image.clear();
                         break;
                     }
@@ -207,9 +208,9 @@ public class ImagePackets implements DataPackets {
      * @return name + date + .jpeg
      */
     @Override
-    public String createFileName() {
+    public String createFileName(String directory, String file_extension) {
         // Create the name of the image file depending on the errors
-        String name = has_errors ? "Images/Corrupted_image " : "Images/Clear_image ";
+        String name = has_errors ? "Corrupted_image " : "Clear_image ";
 
         String pattern = "yyyy-MM-dd HH-mm-ss";
 
@@ -223,6 +224,6 @@ public class ImagePackets implements DataPackets {
         // Using DateFormat format method we can create a string
         // representation of a date with the defined format.
 
-        return name + df.format(today) + ".jpeg";
+        return directory + name + df.format(today) + file_extension;
     }
 }

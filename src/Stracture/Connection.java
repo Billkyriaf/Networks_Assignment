@@ -1,6 +1,5 @@
 package Stracture;
 
-import Stracture.Commands;
 import ithakimodem.Modem;
 
 /**
@@ -125,7 +124,7 @@ public class Connection {
                     packet.append((char) k);
 
                     // Check for termination sequence
-                    if (isMessageOver(packet.toString(), Commands.AT_END.getStr())) {
+                    if (isMessageOver(packet.toString(), Constants.AT_END.getStr())) {
                         break;
                     }
                 } catch (Exception x) {
@@ -164,7 +163,7 @@ public class Connection {
         StringBuilder packet = new StringBuilder();  // Complete packet
 
         // Start the connection to data mode
-        if (!this.modem.open(Commands.DATA_MODE.getStr())) {
+        if (!this.modem.open(Constants.DATA_MODE.getStr())) {
             // If the connection fails return false
             System.out.println("Failed to enter data mode!");
 
@@ -186,7 +185,7 @@ public class Connection {
                     packet.append((char) k);
 
                     // Detect end of transmission
-                    if (isMessageOver(packet.toString(), Commands.SM_END.getStr())) break;
+                    if (isMessageOver(packet.toString(), Constants.SM_END.getStr())) break;
 
                 } catch (Exception x) {
                     System.out.println("Exception thrown: " + x.toString());

@@ -1,6 +1,6 @@
 package Stracture;
 
-public enum Commands {
+public enum Constants {
     // AT Stracture.Commands
     AT("AT\r"),
     ATI("ATI\r"),
@@ -33,12 +33,18 @@ public enum Commands {
     MOVE_UP("DIR=U"),
     MOVE_DOWN("DIR=D"),
     MEMORISE_DIR("M"),
-    RECALL_MEMORY_DIR("C");
+    RECALL_MEMORY_DIR("C"),
+
+    // Data output directories
+    GPS_DATA_DIR("GPS_Saved_Data/"),
+    GPS_IMAGES_DIR("GPS_Saved_Data/GPS Images/"),
+    ECHO_DATA_DIR("Echo_Saved_Data/"),
+    IMAGES_DATA_DIR("Images_Saved_Data/");
 
 
     private final String command;
 
-    Commands(String command){
+    Constants(String command){
         this.command = command;
     }
 
