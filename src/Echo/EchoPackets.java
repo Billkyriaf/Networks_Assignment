@@ -66,17 +66,22 @@ public class EchoPackets implements DataPackets {
     @Override
     public void getPackets() {
         int k;  // The input buffer byte
+        int latency = -1;
 
         System.out.println("Receiving echo packets ...");
 
         for (int i = 0; i < this.default_packet_number; i++) {
             // Request the echo_packet
+
+            long startTime = System.nanoTime();  // Take a measurement before the packet is sent for latency monitoring
+
             if (this.connection.getModem().write(this.connection.getEcho_code().getBytes())) {
 
                 while (true) {
                     try {
-                        // Read the bytes
+                        // Read the next byte
                         k = this.connection.getModem().read();
+
 
                         // if -1 is read there was an error and the connection timed out
                         if (k == -1) {
@@ -87,8 +92,20 @@ public class EchoPackets implements DataPackets {
                         // Append to the packet string
                         this.packet.append((char) k);
 
+
                         // Detect end of packet
-                        if (isTransmissionOver()) break;
+                        if (isTransmissionOver()) {
+
+                            // Latency measurement
+                            long endTime = System.nanoTime();
+                            double duration = ((endTime - startTime)/1000000.0);  // divide by 1000000 to get milliseconds.
+                            latency = (int) Math.round(duration);
+                            System.out.println(latency + " ms");
+
+                            break;
+                        }
+
+
 
                     } catch (Exception x) {
                         System.out.println("Exception thrown: " + x.toString());
@@ -99,7 +116,7 @@ public class EchoPackets implements DataPackets {
                 //System.out.println("Packet received: " + packet.toString());  // DEBUG comment
 
                 // Add packet to the list
-                this.echo_packets.add(packet.toString());
+                this.echo_packets.add(packet.toString() + " latency: " + latency + " ms");
 
                 // Reset packet
                 packet.setLength(0);
