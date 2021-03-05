@@ -29,7 +29,7 @@ public class userApplication {
         Connection connection = new Connection(args[0], args[1], args[2], args[3], args[4], args[5], 76000, 10000);
 
         // Echo packets
-        EchoPackets echoPackets = new EchoPackets(connection, 100);
+        EchoPackets echoPackets = new EchoPackets(connection, 5);
 
         // Image packets
         ImagePackets clear_image = new ImagePackets(connection, false);
@@ -42,13 +42,13 @@ public class userApplication {
 
 
         // Run some tests
-        //echoPackets.getPackets();
+        echoPackets.getPackets();
 
         //clear_image.getPackets();
 
         //corrupted_image.getPackets();
 
-        gpsData.getPackets();
+        //gpsData.getPackets();
 
         connection.getModem().close();
     }
