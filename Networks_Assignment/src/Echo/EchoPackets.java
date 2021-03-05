@@ -100,7 +100,7 @@ public class EchoPackets implements DataPackets {
                             long endTime = System.nanoTime();
                             double duration = ((endTime - startTime)/1000000.0);  // divide by 1000000 to get milliseconds.
                             latency = (int) Math.round(duration);
-                            System.out.println(latency + " ms");
+                            // System.out.println(latency + " ms");
 
                             break;
                         }
