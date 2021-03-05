@@ -1,8 +1,8 @@
 package Image;
 
-import Stracture.Constants;
-import Stracture.DataPackets;
-import Stracture.Connection;
+import Structure.Constants;
+import Structure.DataPackets;
+import Structure.Connection;
 import com.google.common.primitives.Bytes;
 import ithakimodem.Modem;
 

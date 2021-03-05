@@ -4,12 +4,12 @@ package UserApp;
 import Echo.EchoPackets;
 import GPS.GPSPackets;
 import Image.ImagePackets;
-import Stracture.Connection;
+import Structure.Connection;
 
 public class userApplication {
 
     /**
-     * Runs all the tests required.
+     * Runs all the tests required. Expects 6 command line arguments as seen below.
      *
      * @param args program arguments:
      *             1. Echo request code   : E_XXXX
@@ -26,6 +26,7 @@ public class userApplication {
             return;
         }
 
+        // Create the connection with the server
         Connection connection = new Connection(args[0], args[1], args[2], args[3], args[4], args[5], 76000, 10000);
 
         // Echo packets

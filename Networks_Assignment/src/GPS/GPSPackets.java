@@ -1,8 +1,8 @@
 package GPS;
 
-import Stracture.DataPackets;
-import Stracture.Constants;
-import Stracture.Connection;
+import Structure.DataPackets;
+import Structure.Constants;
+import Structure.Connection;
 import Image.ImagePackets;
 import ithakimodem.Modem;
 

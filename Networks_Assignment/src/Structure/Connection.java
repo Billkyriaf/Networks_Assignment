@@ -1,4 +1,4 @@
-package Stracture;
+package Structure;
 
 import ithakimodem.Modem;
 

@@ -1,4 +1,4 @@
-package Stracture;
+package Structure;
 
 /**
  * This interface dictates the methods needed for all the types of connections.

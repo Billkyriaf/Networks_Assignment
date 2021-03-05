@@ -1,7 +1,7 @@
-package Stracture;
+package Structure;
 
 public enum Constants {
-    // AT Stracture.Commands
+    // AT Structure.Commands
     AT("AT\r"),
     ATI("ATI\r"),
     ATS("ATS\r"),
@@ -39,16 +39,19 @@ public enum Constants {
     GPS_DATA_DIR("GPS_Saved_Data/"),
     GPS_IMAGES_DIR("GPS_Saved_Data/GPS Images/"),
     ECHO_DATA_DIR("Echo_Saved_Data/"),
-    IMAGES_DATA_DIR("Images_Saved_Data/");
+    IMAGES_DATA_DIR("Images_Saved_Data/"),
+
+    // File names
+    ECHO_FILE_NAME("echo_packets ");
 
 
-    private final String command;
+    private final String constant;
 
-    Constants(String command){
-        this.command = command;
+    Constants(String constant){
+        this.constant = constant;
     }
 
     public String getStr(){
-        return this.command;
+        return this.constant;
     }
 }
