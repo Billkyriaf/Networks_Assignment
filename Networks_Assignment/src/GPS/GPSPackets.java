@@ -15,34 +15,97 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+
+/**
+ * <h1>gpsGPSPackets Class</h1>
+ * GPSPackets is the class that handles all the actions regarding the GPS data requested from the server. The server
+ * provides 3 types of GPS NMEA data protocols:
+ * <br>
+ * <ul>
+ *     <li>The GPGGA protocol {@link GPS.gpsGPGGA}</li>
+ *     <li>The GPGSA protocol {@link GPS.gpsGPGSA}</li>
+ *     <li>And the GPRMC protocol {@link GPS.gpsGPRMC}</li>
+ * </ul>
+ * <br>
+ *     Also upon special request satellite images fro the google maps are provided with marked coordinate points.
+ * <br>
+ *     Finally the class implements the {@link Structure.DataPackets} interface witch provides the basic structure for
+ *     the class.
+ *
+ *
+ * @author Vasilis Kyriafinis
+ * @version 1.0
+ * @since 1.0
+ */
 public class GPSPackets implements DataPackets {
+    /**
+     * The {@link Structure.Connection} instance of the server connection
+     */
     private final Connection connection;
+
+    /**
+     * A List of all the {@link GPS.gpsGPGGA} lines received
+     */
     private final List<gpsGPGGA> gpsGPGGAList;
+
+    /**
+     * A List of all the {@link GPS.gpsGPGSA} lines received
+     */
     private final List<gpsGPGSA> gpsGPGSAList;
+
+    /**
+     * A List of all the {@link GPS.gpsGPRMC} lines received
+     */
     private final List<gpsGPRMC> gpsGPRMCList;
 
+    /**
+     * A list that holds all the String lines received from the server before they are transformed to one of the
+     * protocols objects.
+     */
     private final List<String> lines = new ArrayList<>();
 
+    /**
+     * This StringBuilder is used to construct the received line Byte by Byte
+     */
     private final StringBuilder gps_line = new StringBuilder();
 
+    /**
+     * An instance of the {@link Image.ImagePackets} class. This instance is used to process the images with the visualized
+     * gps locations from the server.
+     */
     private final ImagePackets imagePackets;
 
 
-    public GPSPackets(Connection connection, ImagePackets imagePackets) {
+    /**
+     * Constructor of the class.
+     * @param connection {@link #connection}
+     */
+    public GPSPackets(Connection connection) {
         this.connection = connection;
 
         this.gpsGPGGAList = new ArrayList<>();
         this.gpsGPGSAList = new ArrayList<>();
         this.gpsGPRMCList = new ArrayList<>();
 
-        this.imagePackets = imagePackets;
+        // Init the image processing object
+        this.imagePackets = new ImagePackets(this.connection, false);
     }
 
 
-    // ===============================  Interface methods  ===============================
-
     /**
-     * Gets gps packages from the server and saves them to a file
+     * Gets gps packages from the server. The packets are based on the NMEA protocol format.
+     * <br>
+     * The start of transmission is always {@link Structure.Constants#GPS_TRANSMISSION_START} and the end of
+     * transmission is always {@link Structure.Constants#GPS_TRANSMISSION_END}. The data lines always terminate with
+     * {@link Structure.Constants#GPS_DATA_LINE_END}.
+     * <br>
+     * After the transmission is over and the data are saved the server provides the choice to request for visualization
+     * of the received locations. This is possible at maximum 9 times for each data request made and it is handled by
+     * {@link #getImages(Modem, String)} function.
+     * <br>
+     * <b>Note:</b> Before requesting location visualisation or saving data to a file the received data must be
+     * categorised by {@link #parseData()} function.
+     *
      */
     @Override
     public void getPackets() {
@@ -53,7 +116,7 @@ public class GPSPackets implements DataPackets {
 
         // Request the gps data
         if (modem.write((request_code).getBytes())) {
-            System.out.println("Receiving gps data ...");
+            System.out.println("Receiving gps data ...");  // debug comment??
             while (true) {
                 try {
                     // Read the bytes
@@ -71,7 +134,6 @@ public class GPSPackets implements DataPackets {
 
                     // Detect end of line or end of transmission
                     if (isTransmissionOver()){
-                        System.out.print("\n");
                         break;
                     }
 
@@ -82,13 +144,15 @@ public class GPSPackets implements DataPackets {
                 }
             }
 
-            // System.out.println("GPS data received: " + gps_line.toString()); // DEBUG comment
+            // System.out.println("GPS data received: " + gps_line.toString()); // debug comment
+
+            // Categorise the received data
+            parseData();
 
             // Request visualization images
-            parseData();
             getImages(modem, request_code);
 
-            //Save data to file
+            // Save data to file
             saveToFile(createFileName(Constants.GPS_DATA_DIR.getStr(), ".txt"));
 
 
@@ -99,10 +163,16 @@ public class GPSPackets implements DataPackets {
     }
 
     /**
-     * Detects the data delimiters for the GPS transmissions. If an end of line is found the data line is saved in the
-     * lines array and the buffer is cleared so that the next line can be saved.
+     * Compares the packet's (at the current state) end with the {@link Structure.Constants#GPS_TRANSMISSION_START},
+     * {@link Structure.Constants#GPS_TRANSMISSION_END} and {@link Structure.Constants#GPS_DATA_LINE_END} strings.
      *
-     * @return true if end of transmission is found false else
+     * @return
+     * <ul>
+     *     <li>If {@link Structure.Constants#GPS_TRANSMISSION_START} is matched the function returns false.</li>
+     *     <li>If {@link Structure.Constants#GPS_TRANSMISSION_END} is matched the function returns true.</li>
+     *     <li>If {@link Structure.Constants#GPS_DATA_LINE_END} is matched the function returns false.</li>
+     * </ul>
+     *
      */
     @Override
     public boolean isTransmissionOver() {
@@ -114,7 +184,7 @@ public class GPSPackets implements DataPackets {
 
 
         if (gps_line.endsWith(transmission_start)){  // Check if this is the transmission start ...
-            // Clear the buffer
+            // Clear the buffer from the useless starting message
             this.gps_line.setLength(0);
             return false;
         }
@@ -123,25 +193,32 @@ public class GPSPackets implements DataPackets {
         }
         else if (gps_line.endsWith(line_end)){  // ... or a line end.
 
+            // Save the line
             this.lines.add(gps_line);
+
+            // Reset the buffer so the new line will be written
             this.gps_line.setLength(0);
             return false;
         }
         else {
             return false;
         }
-
     }
 
     /**
-     * Saves all the gps packets received to a single file and clears all the lists so no duplicates exist
-     * @param file_name the name of the file
+     * Save all the GPS packets form the Lists to a file. The file starts with ## request_codes ##
+     * for later identification. Every NMEA protocol is saved under the corresponding title eg GPGGA.
+     * <br>
+     * Use the {@link #createFileName(String, String)} method to obtain the correct file name.
+     *
+     * @param file_name The name of the file.
      */
     @Override
     public void saveToFile(String file_name) {
         try {
             FileWriter writer = new FileWriter(file_name);
 
+            // Write the request codes
             writer.write("## " + this.connection.getEcho_code() + " " + this.connection.getImage_code() + " " +
                     this.connection.getImage_code_error() + " " + this.connection.getGps_code() + " " +
                     this.connection.getAck_result_code() + " " + this.connection.getNack_result_code() + " ##" +
@@ -149,24 +226,28 @@ public class GPSPackets implements DataPackets {
 
             writer.write("GPGGA: " + System.lineSeparator());
 
+            // Write the GPGGA data
             for(gpsGPGGA gpgga: this.gpsGPGGAList) {
                 writer.write(gpgga.getLine() + System.lineSeparator());
             }
 
             writer.write(System.lineSeparator() + "GPGSA: " + System.lineSeparator());
 
+            // Write the GPGSA data
             for(gpsGPGSA gpgsa: this.gpsGPGSAList) {
                 writer.write(gpgsa.getLine() + System.lineSeparator());
             }
 
             writer.write(System.lineSeparator() + "GPRMC: " + System.lineSeparator());
 
+            // Write the GPRMC data
             for(gpsGPRMC gprmc: this.gpsGPRMCList) {
                 writer.write(gprmc.getLine() + System.lineSeparator());
             }
 
             writer.close();
 
+            // Clear the lists so that no duplicate data are saved
             this.gpsGPGGAList.clear();
             this.gpsGPGSAList.clear();
             this.gpsGPRMCList.clear();
@@ -177,8 +258,14 @@ public class GPSPackets implements DataPackets {
     }
 
     /**
-     * Gets the current date time and formats it "yyyy-MM-dd HH-mm-ss"
-     * @return name + date + .txt
+     * Gets the current date time and formats it in this form "yyyy-MM-dd HH-mm-ss". The final name of the file derives
+     * from the directory + echo_packets yyyy-MM-dd HH-mm-ss + file extension.
+     *
+     * <b>Note: </b> The directory must end with / and the file extension must start with .
+     *
+     * @param directory The directory the file will be saved.
+     * @param file_extension The type of the file e.g.  .txt
+     * @return directory + name + date + file_extension
      */
     @Override
     public String createFileName(String directory, String file_extension) {
@@ -195,20 +282,14 @@ public class GPSPackets implements DataPackets {
         // Get the today date using Calendar object.
         Date today = Calendar.getInstance().getTime();
 
-        // Using DateFormat format method we can create a string
-        // representation of a date with the defined format.
-
         name = name + df.format(today) + file_extension;
 
         return directory + name;
     }
 
 
-
-    // ===============================  Class methods  ===============================
-
     /**
-     * Categorises data based on the type of the protocol
+     * Categorises data in the corresponding Lists based on the type of the protocol used
      */
     private void parseData(){
 
@@ -235,20 +316,29 @@ public class GPSPackets implements DataPackets {
     }
 
     /**
-     * Gets visualized images for the gps data
-     * @param modem the modem of the connection
+     * Gets visualized images for the locations received. The function makes use of the {@link Image.ImagePackets} class
+     * functionality by using the {@link #imagePackets} attribute.
+     * <br>
+     * The coordinates of the location are passed in the T parameter after the gps_request_code in the format
+     * gps_request_codeT=AABBCCDDEEFF\r
+     *
+     * @param modem the modem of the {@link #connection}
+     * @param request_code the gps data request code
      */
     private void getImages(Modem modem, String request_code){
         int k;
 
-        // request data visualization
+        // For each entry found in the gpsGPGGAList ... // TODO limit this to 9 times and request visualisation for data at least 4 seconds apart
         for (gpsGPGGA data: this.gpsGPGGAList) {
+            // ... get the coordinates
             String coordinates = data.getCoordinates();
 
+            // Build the request code
             String request = request_code.substring(0, 5) + "T=" + coordinates + "\r";
 
+            // Request the data
             if (modem.write((request).getBytes())) {
-                System.out.println("Receiving gps image data ...");
+                System.out.println("Receiving gps image data ...");  // debug comment??
                 while (true) {
                     try {
                         // Read the bytes
@@ -266,10 +356,12 @@ public class GPSPackets implements DataPackets {
                         // Detect end of line or end of transmission
                         if (this.imagePackets.isTransmissionOver()) {
                             // Name of the file
-                            String name = createFileName(Constants.GPS_IMAGES_DIR.getStr(), ".jpeg");
+                            String fileName = createFileName(Constants.GPS_IMAGES_DIR.getStr(), ".jpeg");
 
                             // Save the image to a file
-                            this.imagePackets.saveToFile(name);
+                            this.imagePackets.saveToFile(fileName);
+
+                            // Clear the list so that the next image can be saved
                             this.imagePackets.clearImageList();
                             break;
                         }

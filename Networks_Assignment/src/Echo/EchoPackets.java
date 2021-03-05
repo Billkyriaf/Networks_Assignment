@@ -16,7 +16,7 @@ import java.util.List;
  * <h1>EchoPackets Class.</h1>
  * EchoPackets is the class that handles all the actions regarding the echo packets. The class requests echo packets
  * from the server and handles any errors. Also monitors the latency for every packet requested .The packets received
- * are saved to files along with the request_codes used for the session.
+ * are saved to files along with the request_codes used for the current session.
  * <br>
  * The class implements the {@link Structure.DataPackets} interface.
  * In many places the {@link Structure.Constants} enum is used for different String values needed
@@ -34,10 +34,13 @@ public class EchoPackets implements DataPackets {
     private final Connection connection;
     /**
      * The List that holds the complete lines of the packets received
+     * {@link #getEcho_packets()}
      */
     private final List<String> echo_packets;  // List to save all the packets
     /**
      * The number of packets to be requested
+     * {@link #getDefault_packet_number()}
+     * {@link #setDefault_packet_number(int)}
      */
     private int default_packet_number;
     /**
@@ -48,8 +51,8 @@ public class EchoPackets implements DataPackets {
 
     /**
      * Constructor
-     * @param connection the connection object
-     * @param default_packet_number  the number of the packets to be received
+     * @param connection {@link #connection}
+     * @param default_packet_number {@link #default_packet_number}
      */
     public EchoPackets(Connection connection, int default_packet_number){
         this.connection = connection;
@@ -167,7 +170,7 @@ public class EchoPackets implements DataPackets {
     }
 
     /**
-     * Compares the packet's (at the current state) end with the {@link Structure.Constants} PACKET_END string.
+     * Compares the packet's (at the current state) end with the {@link Structure.Constants#PACKET_END} string.
      * @return True if the pattern matched false if not or if the message was too short.
      */
     @Override
@@ -180,6 +183,8 @@ public class EchoPackets implements DataPackets {
     /**
      * Save all the echo packets and latencies form the packet List to a file. The file starts with ## request_codes ##
      * for later identification. Every echo packet and the corresponding latency are saved to a new line.
+     * <br>
+     * Use the {@link #createFileName(String, String)} method to obtain the correct file name.
      *
      * @param file_name The name of the file.
      */

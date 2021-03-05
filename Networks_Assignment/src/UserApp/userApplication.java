@@ -38,7 +38,7 @@ public class userApplication {
         ImagePackets corrupted_image = new ImagePackets(connection, true);
 
         // GPS packets
-        GPSPackets gpsData = new GPSPackets(connection, new ImagePackets(connection, false));
+        GPSPackets gpsData = new GPSPackets(connection);
 
 
 
