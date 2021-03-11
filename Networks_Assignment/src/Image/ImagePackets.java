@@ -172,7 +172,7 @@ public class ImagePackets implements DataPackets {
     }
 
     /**
-     * Save an image in the form of a Byte List to a .jpeg file
+     * Save an image in the form of a Byte List to a .jpeg file.
      * @param file_name the name of the file
      */
     @Override
