@@ -1,6 +1,7 @@
 package UserApp;
 
 
+import Echo.EchoErrors;
 import Echo.EchoPackets;
 import GPS.GPSPackets;
 import Image.ImagePackets;
@@ -19,9 +20,9 @@ public class userApplication {
      *             5. ACK result code     : Q_XXXX
      *             6. NACK result code    : R_XXXX
      */
-    public static void main(String[] args){
+    public static void main(String[] args) {
         // Check if the arguments are correct
-        if (args.length != 6){
+        if (args.length != 6) {
             System.out.println("Expected: <EXXXX> <MXXXX> <GXXXX> <PXXXX> <QXXXX> <RXXXX> as arguments");
             return;
         }
@@ -40,16 +41,21 @@ public class userApplication {
         // GPS packets
         GPSPackets gpsData = new GPSPackets(connection);
 
+        EchoErrors echoErrors = new EchoErrors(connection, 1000);
+
+        int num = 10;
 
 
         // Run some tests
-        echoPackets.getPackets();
+        //echoPackets.getPackets();
 
-        //clear_image.getPackets();
+        clear_image.getPackets();
 
-        //corrupted_image.getPackets();
+        corrupted_image.getPackets();
 
         //gpsData.getPackets();
+
+        //echoErrors.getPackets();
 
         connection.getModem().close();
     }
