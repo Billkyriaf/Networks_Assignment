@@ -219,9 +219,9 @@ public class GPSPackets implements DataPackets {
             FileWriter writer = new FileWriter(file_name);
 
             // Write the request codes
-            writer.write("## " + this.connection.getEcho_code() + " " + this.connection.getImage_code() + " " +
-                    this.connection.getImage_code_error() + " " + this.connection.getGps_code() + " " +
-                    this.connection.getAck_result_code() + " " + this.connection.getNack_result_code() + " ##" +
+            writer.write("####\n" + this.connection.getEcho_code() + this.connection.getImage_code() +
+                    this.connection.getImage_code_error() + this.connection.getGps_code() +
+                    this.connection.getAck_code() + this.connection.getNack_code() + "###" +
                     System.lineSeparator());
 
             writer.write("GPGGA: " + System.lineSeparator());
