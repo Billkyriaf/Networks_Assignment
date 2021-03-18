@@ -38,11 +38,13 @@ public enum Constants {
     // Data output directories
     GPS_DATA_DIR("GPS_Saved_Data/"),
     GPS_IMAGES_DIR("GPS_Saved_Data/GPS Images/"),
-    ECHO_DATA_DIR("Echo_Saved_Data/"),
+    ECHO_DATA_DIR("Echo_Saved_Data/Normal Packets/"),
+    ERR_ECHO_DATA_DIR("Echo_Saved_Data/Error Packets/"),
     IMAGES_DATA_DIR("Images_Saved_Data/"),
 
     // File names
-    ECHO_FILE_NAME("echo_packets ");
+    ECHO_FILE_NAME("echo_packets "),
+    ERR_ECHO_FILE_NAME("err_echo_packets ");
 
 
     private final String constant;

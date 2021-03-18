@@ -12,8 +12,8 @@ public class Connection {
     private String image_code;
     private String image_code_error;
     private final String gps_code;
-    private final String ack_result_code;
-    private final String nack_result_code;
+    private final String ack_code;
+    private final String nack_code;
 
     /**
      * Class constructor. Creates the modem object that is used for the connections
@@ -40,8 +40,8 @@ public class Connection {
         this.image_code = image + '\r';
         this.image_code_error = image_err + '\r';
         this.gps_code = gps + '\r';
-        this.ack_result_code = ack + '\r';
-        this.nack_result_code = nack + '\r';
+        this.ack_code = ack + '\r';
+        this.nack_code = nack + '\r';
 
         testConnection();
 
@@ -89,12 +89,12 @@ public class Connection {
         return gps_code;
     }
 
-    public String getAck_result_code() {
-        return ack_result_code;
+    public String getAck_code() {
+        return ack_code;
     }
 
-    public String getNack_result_code() {
-        return nack_result_code;
+    public String getNack_code() {
+        return nack_code;
     }
 
 

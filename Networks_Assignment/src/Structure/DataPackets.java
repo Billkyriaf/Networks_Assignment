@@ -25,6 +25,8 @@ public interface DataPackets {
 
     /**
      * Returns a unique file name based on the current dateTime
+     * @param directory the directory to save the file
+     * @param file_extension the file extension
      * @return name + dateTime
      */
     String createFileName(String directory, String file_extension);
