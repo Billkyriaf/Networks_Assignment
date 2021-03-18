@@ -15,12 +15,11 @@ import java.util.List;
 /**
  * <h1>EchoPackets Class.</h1>
  * EchoPackets is the class that handles all the actions regarding the echo packets. The class requests echo packets
- * from the server and handles any errors. Also monitors the latency for every packet requested .The packets received
+ * from the server and handles any errors. Also monitors the response time for every packet requested .The packets received
  * are saved to files along with the request_codes used for the current session.
  * <br>
  * The class implements the {@link Structure.DataPackets} interface.
  * In many places the {@link Structure.Constants} enum is used for different String values needed
- *
  *
  * @author Vasilis Kyriafinis
  * @version 1.0
@@ -39,10 +38,10 @@ public class EchoPackets implements DataPackets {
     private final List<String> echo_packets;  // List to save all the packets
     /**
      * The number of packets to be requested
-     * {@link #getDefault_packet_number()}
-     * {@link #setDefault_packet_number(int)}
+     * {@link #getRequest_packet_number()}
+     * {@link #setRequest_packet_number(int)}
      */
-    private int default_packet_number;
+    private int request_packet_number;
     /**
      * The StringBuilder that is used to construct each line byte by byte
      */
@@ -51,12 +50,13 @@ public class EchoPackets implements DataPackets {
 
     /**
      * Constructor
-     * @param connection {@link #connection}
-     * @param default_packet_number {@link #default_packet_number}
+     *
+     * @param connection            {@link #connection}
+     * @param request_packet_number {@link #request_packet_number}
      */
-    public EchoPackets(Connection connection, int default_packet_number){
+    public EchoPackets(Connection connection, int request_packet_number) {
         this.connection = connection;
-        this.default_packet_number = default_packet_number;
+        this.request_packet_number = request_packet_number;
 
         // initialize the echo packets list
         this.echo_packets = new ArrayList<>();
@@ -65,53 +65,57 @@ public class EchoPackets implements DataPackets {
 
     /**
      * Gets the echo_packets List.
+     *
      * @return List of received echo lines
      */
     public List<String> getEcho_packets() {
         return echo_packets;
     }
 
-
     /**
      * Gets the number of packets to be requested
+     *
      * @return int number of packets
      */
-    public int getDefault_packet_number() {
-        return default_packet_number;
+    public int getRequest_packet_number() {
+        return request_packet_number;
     }
-
 
     /**
      * Sets the number of packets to be requested
-     * @param default_packet_number int number of packets
+     *
+     * @param request_packet_number int number of packets
      */
-    public void setDefault_packet_number(int default_packet_number) {
-        this.default_packet_number = default_packet_number;
+    public void setRequest_packet_number(int request_packet_number) {
+        this.request_packet_number = request_packet_number;
     }
 
 
     /**
      * Receives large number of echo packets from the server. The packets have the form:
-     *
+     * <p>
      * PSTART DD-MM-YYYY HH-MM-SS PC PSTOP
-     *
+     * <p>
      * Where:
-     *     DD-MM-YYYY date of send
-     *     HH-MM-SS time of send
-     *     PC packet counter modulo(100)
-     *
+     * DD-MM-YYYY date of send
+     * HH-MM-SS time of send
+     * PC packet counter modulo(100)
      */
     @Override
     public void getPackets() {
-        int k;  // The input buffer byte
-        int latency = -1;  // The latency of each request
+        int data_byte;  // The read byte from the input stream
+        int response_time = -1;  // The response_time of each request
+        long start_time;  // The starting time of the request
+        long end_time;  // The time all the data for a certain request are completely received
+
+        long time = System.nanoTime();
 
         System.out.println("Receiving echo packets ...");  // DEBUG comment??
 
         // Request echo_packet based on the default_packet_number
-        for (int i = 0; i < this.default_packet_number; i++) {
-
-            long startTime = System.nanoTime();  // Take a time measurement before the packet is sent
+        //for (int i = 0; i < this.request_packet_number; i++) {
+        while ((System.nanoTime() - time) / 1000000.0 < 240000.0){
+            start_time = System.nanoTime();  // Take a time measurement before the request is sent
 
             // Request the packet
             if (this.connection.getModem().write(this.connection.getEcho_code().getBytes())) {
@@ -119,48 +123,52 @@ public class EchoPackets implements DataPackets {
                 while (true) {
                     try {
                         // Read the next byte
-                        k = this.connection.getModem().read();
-
-
-                        // if -1 is read there was an error and the connection timed out
-                        if (k == -1) {
-                            System.out.println("Connection timed out.");  // DEBUG comment??
-                            break;
-                        }
-
-                        // Append to the packet string
-                        this.packet.append((char) k);
-
-                        // Detect end of echo packet
-                        if (isTransmissionOver()) {
-                            // If the line is complete...
-                            // ... we take a second time measurement ...
-                            long endTime = System.nanoTime();
-                            // ...and calculate the time that took the packet to arrive after the request was sent in ms.
-                            double duration = (endTime - startTime)/1000000.0;
-
-                            latency = (int) Math.round(duration);
-
-                            // System.out.println(latency + " ms"); // DEBUG comment
-                            break;
-                        }
+                        data_byte = this.connection.getModem().read();
 
                     } catch (Exception x) {
+                        // any read related exceptions are caught
                         System.out.println("Exception thrown: " + x.toString());
+
+                        // Reset packet line
+                        this.packet.setLength(0);
+                        break;
+                    }
+
+                    // if -1 is read there was an error and the connection timed out or dropped unexpectedly
+                    if (data_byte == -1) {
+                        System.out.println("Connection timed out.");  // DEBUG comment??
+                        break;
+                    }
+
+                    // Append to the packet string
+                    this.packet.append((char) data_byte);
+
+                    // Detect end of echo packet
+                    if (isTransmissionOver()) {
+                        // If the packet is complete we take a second time measurement ...
+                        end_time = System.nanoTime();
+                        // ...and calculate the time that took the packet to arrive after the request was sent in ms.
+                        double duration = (end_time - start_time) / 1000000.0;
+
+                        response_time = (int) Math.round(duration);
+
+                        // System.out.println(response_time + " ms"); // DEBUG comment
                         break;
                     }
                 }
 
                 //System.out.println("Packet received: " + packet.toString());  // DEBUG comment
 
-                // Add packet and the corresponding latency to the packet List
-                this.echo_packets.add(packet.toString() + " latency: " + latency + " ms");
+                if (this.packet.length() != 0) {
+                    // Add packet and the corresponding response_time to the packet List
+                    this.echo_packets.add(this.packet.toString() + " response_time: " + response_time + " ms");
 
-                // Reset packet line
-                packet.setLength(0);
+                    // Reset packet line
+                    this.packet.setLength(0);
+                }
 
             } else {
-                System.out.println("Failed to send echo code");
+                System.out.println("Failed to send echo code request");
                 break;
             }
         }
@@ -171,6 +179,7 @@ public class EchoPackets implements DataPackets {
 
     /**
      * Compares the packet's (at the current state) end with the {@link Structure.Constants#PACKET_END} string.
+     *
      * @return True if the pattern matched false if not or if the message was too short.
      */
     @Override
@@ -190,21 +199,30 @@ public class EchoPackets implements DataPackets {
      */
     @Override
     public void saveToFile(String file_name) {
+        File file = new File(file_name);
+
         try {
-            FileWriter writer = new FileWriter(file_name);
+            file.getParentFile().mkdirs();
+        }
+        catch (SecurityException securityException) {
+            System.out.println("Failed to create file: " + securityException.toString());
+            return;
+        }
+
+        try {
+            FileWriter writer = new FileWriter(file);
 
             // Write the request codes
-            writer.write("## " + this.connection.getEcho_code() + " " + this.connection.getImage_code() + " " +
-                    this.connection.getImage_code_error() + " " + this.connection.getGps_code() + " " +
-                    this.connection.getAck_result_code() + " " + this.connection.getNack_result_code() + " ##" +
+            writer.write("####\n" + this.connection.getEcho_code() + this.connection.getImage_code() +
+                    this.connection.getImage_code_error() + this.connection.getGps_code() +
+                    this.connection.getAck_code() + this.connection.getNack_code() + "###" +
                     System.lineSeparator());
 
             // For each entry in the packets List...
-            for(String str: this.echo_packets) {
+            for (String str : this.echo_packets) {
                 // ... write a new line
                 writer.write(str + System.lineSeparator());
             }
-
 
             writer.close();
 
