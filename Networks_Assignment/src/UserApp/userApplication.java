@@ -27,7 +27,10 @@ public class userApplication {
             return;
         }
 
-        // Create the connection with the server
+        /* Create the connection with the server
+         * IMPORTANT NOTE!!  for the GPS module a 4 second delay is used at some points if the timeout parameter is
+         * less that 5 the connection will time out.
+         */
         Connection connection = new Connection(args[0], args[1], args[2], args[3], args[4], args[5], 76000, 10000);
 
         // Echo packets
@@ -49,11 +52,11 @@ public class userApplication {
         // Run some tests
         //echoPackets.getPackets();
 
-        clear_image.getPackets();
+        //clear_image.getPackets();
 
-        corrupted_image.getPackets();
+        //corrupted_image.getPackets();
 
-        //gpsData.getPackets();
+        gpsData.getPackets();
 
         //echoErrors.getPackets();
 
