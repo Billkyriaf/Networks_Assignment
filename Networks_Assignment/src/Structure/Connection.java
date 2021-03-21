@@ -7,7 +7,7 @@ import ithakimodem.Modem;
  */
 public class Connection {
 
-    private final Modem modem;
+    private Modem modem;
     private final String echo_code;
     private String image_code;
     private String image_code_error;
@@ -196,6 +196,40 @@ public class Connection {
 
             System.out.println(packet.toString());
             return true;
+        }
+    }
+
+    //TODO make a reconnect function for when the connection drops
+
+    /**
+     * The reconnect function re establishes the connection with the server if the server
+     *
+     * @param speed Speed of the connection
+     * @param timeout Timeout time in seconds for the connection
+     * @return If the connection is successful the function returns true else it returns false
+     */
+    public boolean reconnect(int speed, int timeout){
+        this.modem = null;
+
+        // Create a new Modem object
+        this.modem = new Modem();
+
+        //Setup the modem for initial connection test
+        modem.setSpeed(speed);  // Connection speed
+        modem.setTimeout(timeout);  // The timeout time. After this time with no activity the connection times out
+
+        // Start the data connection with the server
+        if(startDataConnection()){
+            System.out.println("Connection successful");
+            return true;
+        }
+        else {
+            System.out.println("Connection failed");
+
+            // Close the connection
+            this.modem.close();
+
+            return false;
         }
     }
 
