@@ -102,7 +102,13 @@ public class gpsGPGGA {
      */
     public String getCoordinates(){
         // Separate the degrees from minutes and seconds
-        String longitude_deg = this.longitude.substring(1, 3);
+        String longitude_deg = this.longitude.substring(0, 3);
+
+        // If the longitude is more that 90° we keep only the 2 most significant digits
+        if(longitude_deg.startsWith("0")){
+            longitude_deg = longitude_deg.substring(1);
+        }
+
         String longitude_min = this.longitude.substring(3, 5);
         String longitude_sec = "0" + this.longitude.substring(5);
 
@@ -110,6 +116,10 @@ public class gpsGPGGA {
         double long_sec = Double.parseDouble(longitude_sec);
         long_sec = long_sec * 60;
         longitude_sec = String.valueOf((int)Math.round(long_sec));
+
+        if (longitude_sec.length() != 2 ){
+            longitude_sec = "0" + longitude_sec;
+        }
 
         String longitude = longitude_deg + longitude_min + longitude_sec;
 
@@ -122,6 +132,11 @@ public class gpsGPGGA {
         double lat_sec = Double.parseDouble(latitude_sec);
         lat_sec = lat_sec * 60;
         latitude_sec = String.valueOf((int)Math.round(lat_sec));
+
+        // If the seconds are less that 10 a 0 is added in front of the number
+        if (latitude_sec.length() != 2 ){
+            latitude_sec = "0" + latitude_sec;
+        }
 
         String latitude = latitude_deg + latitude_min + latitude_sec;
 
