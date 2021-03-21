@@ -17,14 +17,38 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * <h1>ImagePackets Class</h1>
+ * ImagePackets is the class that handles all the actions regarding the images requested from the server. The server
+ * provides 2 types of images. One without any errors and one in witch random errors are inserted in half of the image
+ * from the server.
+ * <br>
+ * The class implements the {@link Structure.DataPackets} interface witch provides the basic structure for the class.
+ *
+ * @author Vasilis Kyriafinis
+ * @version 1.0
+ * @since 1.0
+ */
 public class ImagePackets implements DataPackets {
-
+    /**
+     * The {@link Structure.Connection} instance of the server connection
+     */
     private final Connection connection;
 
-    private String camera_commands;  // Camera moving commands (U, D, etc)
-    private boolean has_errors;  // Indicates if the images requested have errors
+    /**
+     * This string stores the request codes for moving the camera (U, D, etc)
+     */
+    private String camera_commands;
 
-    private final List<Byte> image;  // List with all the bytes of the image
+    /**
+     * Indicates if the images requested have errors
+     */
+    private boolean has_errors;
+
+    /**
+     * A List that temporarily holds the image bytes
+     */
+    private final List<Byte> image;
 
 
     /**
@@ -53,11 +77,8 @@ public class ImagePackets implements DataPackets {
     }
 
 
-
-    // ===============================  Getters - Setters  ===============================
-
     /**
-     * Sets this.camera_command and updates the values in the Connection object
+     * Sets {@link #camera_commands} and updates the values in the {@link #connection} object
      * @param camera_commands the extra camera parameters
      */
     public void setCamera_commands(String camera_commands) {
@@ -83,26 +104,47 @@ public class ImagePackets implements DataPackets {
         this.connection.setImage_code_error(image_code_error);
     }
 
+    /**
+     * Sets the {@link #has_errors} value.
+     * @param has_errors true if the images requested will have errors false else
+     */
     public void setHas_errors(boolean has_errors){
         this.has_errors = has_errors;
     }
 
+    /**
+     * Gets the {@link #has_errors} value
+     * @return {@link #has_errors} current value
+     */
     public boolean getHas_errors(){
         return this.has_errors;
     }
 
+    /**
+     * Adds a byte to the {@link #image} List
+     * @param k byte to add
+     */
     public void addToImageList(byte k){
         this.image.add(k);
     }
 
+    /**
+     * Clears the {@link #image} List from all the bytes stored
+     */
     public void clearImageList(){
         this.image.clear();
     }
 
-    // ===============================  Interface methods  ===============================
 
     /**
-     * Gets images from the server and saves them to a file
+     * Requests one image from the server every time is called. There are two options provided by the server:
+     * <ul>
+     *     <li>Images with no errors</li>
+     *     <li>Images with errors</li>
+     * </ul>
+     *
+     * The requested image type is determined by the {@link #has_errors} attribute. Every received image is saved to a
+     * file with the function {@link #saveToFile(String file_name)}
      */
     @Override
     public void getPackets() {
@@ -158,8 +200,8 @@ public class ImagePackets implements DataPackets {
     }
 
     /**
-     * Compares the last elements of the list with 0xFF 0xD9 jpeg end bytes
-     * @return true if all the elements are found false else
+     * Compares the last to byte elements of the {@link #image} list with 0xFF 0xD9 bytes (jpeg file ending bytes)
+     * @return true if both bytes are found false else
      */
     @Override
     public boolean isTransmissionOver() {
@@ -172,7 +214,7 @@ public class ImagePackets implements DataPackets {
     }
 
     /**
-     * Save an image in the form of a Byte List to a .jpeg file.
+     * Save the image stored in the {@link #image} List as bytes to a .jpeg file.
      * @param file_name the name of the file
      */
     @Override

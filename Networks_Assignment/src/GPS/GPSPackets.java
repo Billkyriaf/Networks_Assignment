@@ -101,7 +101,7 @@ public class GPSPackets implements DataPackets {
 
 
     /**
-     * Gets gps packages from the server. The packets are based on the NMEA protocol format.
+     * Requests gps data packages from the server. The packets are based on the NMEA protocol format.
      * <br>
      * The start of transmission is always {@link Structure.Constants#GPS_TRANSMISSION_START} and the end of
      * transmission is always {@link Structure.Constants#GPS_TRANSMISSION_END}. The data lines always terminate with
