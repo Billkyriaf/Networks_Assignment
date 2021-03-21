@@ -94,10 +94,12 @@ public class EchoErrors implements DataPackets {
 
 
     /**
-     * Receives large number of echo packets with errors from the server. Every time a packet's checksum is not valid
-     * the nac code is send and the packet is received again. Finally the packets are saved to a file for future
-     * reference.
-     *
+     * The getPackets function is responsible for evaluating packets received by {@link #readPacket(String ACK_CODE)}.
+     * It also handles retransmission due to checksum pseudo errors inserted by the server. Every time a packet's
+     * checksum, calculated by {@link #isCheckSumOk(String packet)}, is not valid the {@link #readPacket(String NAC_CODE)}
+     * is called and the packet is received again. Finally the packets are saved to the {@link #echo_packets} List and
+     * to a file by {@link #saveToFile(String file_name)} for future reference.
+     * <br>
      * The packets have the form:
      * <p>
      * PSTART DD-MM-YYYY HH-MM-SS PC <XXXXXXXXXXXXXXXX> FCS PSTOP
@@ -153,7 +155,6 @@ public class EchoErrors implements DataPackets {
         saveToFile(createFileName(Constants.ERR_ECHO_DATA_DIR.getStr(), ".txt"));
     }
 
-
     /**
      * Compares the packet's (at the current state) end with the {@link Structure.Constants#PACKET_END} string.
      *
@@ -167,8 +168,9 @@ public class EchoErrors implements DataPackets {
     }
 
     /**
-     * Save all the echo packets and latencies form the packet List to a file. The file starts with ## request_codes ##
-     * for later identification. Every echo packet and the corresponding latency are saved to a new line.
+     * Save all the echo packets and latencies form the packet List to a file. The file starts with
+     * "####\n" request_codes "###\n" for later identification of the session. Every echo packet and the corresponding
+     * response time are saved to a new line.
      * <br>
      * Use the {@link #createFileName(String, String)} method to obtain the correct file name.
      *
@@ -215,7 +217,7 @@ public class EchoErrors implements DataPackets {
      * Gets the current date time and formats it in this form "yyyy-MM-dd HH-mm-ss". The final name of the file derives
      * from the directory + echo_packets yyyy-MM-dd HH-mm-ss + file extension.
      *
-     * <b>Note: </b> The directory must end with / and the file extension must start with .
+     * <b>Note: </b>The directory must end with "/" and the file extension must start with "."
      *
      * @param directory The directory the file will be saved.
      * @param file_extension The type of the file e.g.  .txt
@@ -237,6 +239,17 @@ public class EchoErrors implements DataPackets {
         return directory + name + df.format(today) + file_extension;
     }
 
+    /**
+     * The readPacket function is responsible for requesting and reading a packet from the server. The packet is saved in
+     * the {@link #packet} StringBuilder. The packet is guaranteed to be complete once this function returns anything
+     * except -1. In the case the return value is -1 the connection has probably timed out.
+     * <br>
+     * <b>NOTE: </b>The returned time must be correctly handled because in the case the connection drops or times out
+     * this is the only way to know.
+     *
+     * @param request_code the request code (ACK or NACK)
+     * @return the response time for the packet in milliseconds or -1 if there was an error
+     */
     private int readPacket(String request_code) {
         int k;  // Each input byte
 
@@ -287,7 +300,7 @@ public class EchoErrors implements DataPackets {
 
     /**
      * Checks the CheckSum8 Xor for the data included in the packet.
-     * @param data_packet the hole received packet
+     * @param data_packet the received packet
      * @return true is the checksum matches false if not
      */
     private boolean isCheckSumOk(String data_packet) {
