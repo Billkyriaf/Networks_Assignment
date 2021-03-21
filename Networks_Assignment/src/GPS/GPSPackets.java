@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -31,7 +32,6 @@ import java.util.List;
  * <br>
  *     Finally the class implements the {@link Structure.DataPackets} interface witch provides the basic structure for
  *     the class.
- *
  *
  * @author Vasilis Kyriafinis
  * @version 1.0
@@ -59,6 +59,12 @@ public class GPSPackets implements DataPackets {
     private final List<gpsGPRMC> gpsGPRMCList;
 
     /**
+     * A List of all the objects used for gps image data visualization. It must be ensured that the data saved here are
+     * at least 4 seconds apart.
+     */
+    private final List<gpsGPGGA> imageDataList;
+
+    /**
      * A list that holds all the String lines received from the server before they are transformed to one of the
      * protocols objects.
      */
@@ -78,6 +84,7 @@ public class GPSPackets implements DataPackets {
 
     /**
      * Constructor of the class.
+     *
      * @param connection {@link #connection}
      */
     public GPSPackets(Connection connection) {
@@ -86,6 +93,7 @@ public class GPSPackets implements DataPackets {
         this.gpsGPGGAList = new ArrayList<>();
         this.gpsGPGSAList = new ArrayList<>();
         this.gpsGPRMCList = new ArrayList<>();
+        this.imageDataList = new ArrayList<>();
 
         // Init the image processing object
         this.imagePackets = new ImagePackets(this.connection, false);
@@ -105,7 +113,6 @@ public class GPSPackets implements DataPackets {
      * <br>
      * <b>Note:</b> Before requesting location visualisation or saving data to a file the received data must be
      * categorised by {@link #parseData()} function.
-     *
      */
     @Override
     public void getPackets() {
@@ -114,65 +121,81 @@ public class GPSPackets implements DataPackets {
         String request_code = connection.getGps_code();
         int k; // input bytes
 
-        // Request the gps data
-        if (modem.write((request_code).getBytes())) {
-            System.out.println("Receiving gps data ...");  // debug comment??
-            while (true) {
-                try {
-                    // Read the bytes
-                    k = modem.read();
+        // request 9 times every request is at least 4 seconds apart for the image representation requirements
+        for (int i = 0; i < 9; i++) {
+            // Request the gps data
+            if (modem.write((request_code).getBytes())) {
+                System.out.println("Receiving gps data ...");  // debug comment??
+                while (true) {
+                    try {
+                        // Read the bytes
+                        k = modem.read();
 
-                    // if -1 is read there was an error and the connection timed out
-                    if (k == -1) {
-                        System.out.println("Connection timed out.");
+                        // if -1 is read there was an error and the connection timed out
+                        if (k == -1) {
+                            System.out.println("Connection timed out reconnecting...");
+
+                            // Delete the incomplete data
+                            this.gps_line.setLength(0);
+
+                            // Repeat the transmission
+                            i--;
+
+                            this.connection.reconnect(76000, 10000);
+                            break;
+                        }
+
+                        // Add chars to the string line
+                        this.gps_line.append((char) k);
+
+
+                        // Detect end of line or end of transmission
+                        if (isTransmissionOver()) {
+                            System.out.println("Data received");
+                            // System.out.println("GPS data received: " + gps_line.toString()); // debug comment
+
+                            // Categorise the received data
+                            parseData();
+
+                            // Save data to file
+                            saveToFile(createFileName(Constants.GPS_DATA_DIR.getStr(), ".txt"));
+
+                            break;
+                        }
+
+                    } catch (Exception x) {
+                        System.out.println("Exception thrown: " + x.toString());
                         break;
                     }
-
-                    // Add chars to the string line
-                    this.gps_line.append((char) k);
-
-
-                    // Detect end of line or end of transmission
-                    if (isTransmissionOver()){
-                        break;
-                    }
-
-
-                } catch (Exception x) {
-                    System.out.println("Exception thrown: " + x.toString());
-                    break;
                 }
+
+
+            } else {
+                System.out.println("Failed to send gps code");
             }
 
-            // System.out.println("GPS data received: " + gps_line.toString()); // debug comment
-
-            // Categorise the received data
-            parseData();
-
-            // Request visualization images
-            getImages(modem, request_code);
-
-            // Save data to file
-            saveToFile(createFileName(Constants.GPS_DATA_DIR.getStr(), ".txt"));
-
-
-
-        } else {
-            System.out.println("Failed to send gps code");
+            try {
+                System.out.println("Waiting ....");
+                TimeUnit.SECONDS.sleep(5);
+            } catch (InterruptedException interruptedException) {
+                System.out.println(interruptedException.toString());
+                return;
+            }
         }
+
+        // Request visualization images
+        getImages(modem, request_code);
     }
 
     /**
      * Compares the packet's (at the current state) end with the {@link Structure.Constants#GPS_TRANSMISSION_START},
      * {@link Structure.Constants#GPS_TRANSMISSION_END} and {@link Structure.Constants#GPS_DATA_LINE_END} strings.
      *
-     * @return
-     * <ul>
+     * @return <ul>
      *     <li>If {@link Structure.Constants#GPS_TRANSMISSION_START} is matched the function returns false.</li>
      *     <li>If {@link Structure.Constants#GPS_TRANSMISSION_END} is matched the function returns true.</li>
      *     <li>If {@link Structure.Constants#GPS_DATA_LINE_END} is matched the function returns false.</li>
      * </ul>
-     *
      */
     @Override
     public boolean isTransmissionOver() {
@@ -183,15 +206,13 @@ public class GPSPackets implements DataPackets {
         String gps_line = this.gps_line.toString();
 
 
-        if (gps_line.endsWith(transmission_start)){  // Check if this is the transmission start ...
+        if (gps_line.endsWith(transmission_start)) {  // Check if this is the transmission start ...
             // Clear the buffer from the useless starting message
             this.gps_line.setLength(0);
             return false;
-        }
-        else if (gps_line.endsWith(transmission_end)){  // ... or the transmission end ...
+        } else if (gps_line.endsWith(transmission_end)) {  // ... or the transmission end ...
             return true;
-        }
-        else if (gps_line.endsWith(line_end)){  // ... or a line end.
+        } else if (gps_line.endsWith(line_end)) {  // ... or a line end.
 
             // Save the line
             this.lines.add(gps_line);
@@ -199,8 +220,7 @@ public class GPSPackets implements DataPackets {
             // Reset the buffer so the new line will be written
             this.gps_line.setLength(0);
             return false;
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -227,21 +247,21 @@ public class GPSPackets implements DataPackets {
             writer.write("GPGGA: " + System.lineSeparator());
 
             // Write the GPGGA data
-            for(gpsGPGGA gpgga: this.gpsGPGGAList) {
+            for (gpsGPGGA gpgga : this.gpsGPGGAList) {
                 writer.write(gpgga.getLine() + System.lineSeparator());
             }
 
             writer.write(System.lineSeparator() + "GPGSA: " + System.lineSeparator());
 
             // Write the GPGSA data
-            for(gpsGPGSA gpgsa: this.gpsGPGSAList) {
+            for (gpsGPGSA gpgsa : this.gpsGPGSAList) {
                 writer.write(gpgsa.getLine() + System.lineSeparator());
             }
 
             writer.write(System.lineSeparator() + "GPRMC: " + System.lineSeparator());
 
             // Write the GPRMC data
-            for(gpsGPRMC gprmc: this.gpsGPRMCList) {
+            for (gpsGPRMC gprmc : this.gpsGPRMCList) {
                 writer.write(gprmc.getLine() + System.lineSeparator());
             }
 
@@ -263,7 +283,7 @@ public class GPSPackets implements DataPackets {
      *
      * <b>Note: </b> The directory must end with / and the file extension must start with .
      *
-     * @param directory The directory the file will be saved.
+     * @param directory      The directory the file will be saved.
      * @param file_extension The type of the file e.g.  .txt
      * @return directory + name + date + file_extension
      */
@@ -291,27 +311,30 @@ public class GPSPackets implements DataPackets {
     /**
      * Categorises data in the corresponding Lists based on the type of the protocol used
      */
-    private void parseData(){
+    private void parseData() {
 
-        for (String line: this.lines) {
-            if (line.startsWith(Constants.GPGGA.getStr())){
+        for (String line : this.lines) {
+            if (line.startsWith(Constants.GPGGA.getStr())) {
                 // save the GPGGA to the list and clear the buffer
                 gpsGPGGA tmp = new gpsGPGGA(line);
                 this.gpsGPGGAList.add(tmp);
                 this.gps_line.setLength(0);
-            }
-            else if (line.startsWith(Constants.GPGSA.getStr())){
+            } else if (line.startsWith(Constants.GPGSA.getStr())) {
                 // save the GPGSA to the list and clear the buffer
                 gpsGPGSA tmp = new gpsGPGSA(line);
                 this.gpsGPGSAList.add(tmp);
                 this.gps_line.setLength(0);
-            }
-            else if (line.startsWith(Constants.GPRMC.getStr())){
+            } else if (line.startsWith(Constants.GPRMC.getStr())) {
                 // save the GPRMC to the list and clear the buffer
                 gpsGPRMC tmp = new gpsGPRMC(line);
                 this.gpsGPRMCList.add(tmp);
                 this.gps_line.setLength(0);
             }
+        }
+
+        // check if the gpsGPGGALis list is not empty and add the last item to the list for image data visualization
+        if (!this.gpsGPGGAList.isEmpty()) {
+            this.imageDataList.add(this.gpsGPGGAList.get(this.gpsGPGGAList.size() - 1));
         }
     }
 
@@ -322,59 +345,68 @@ public class GPSPackets implements DataPackets {
      * The coordinates of the location are passed in the T parameter after the gps_request_code in the format
      * gps_request_codeT=AABBCCDDEEFF\r
      *
-     * @param modem the modem of the {@link #connection}
+     * @param modem        the modem of the {@link #connection}
      * @param request_code the gps data request code
      */
-    private void getImages(Modem modem, String request_code){
+    private void getImages(Modem modem, String request_code) {
         int k;
+        StringBuilder request = new StringBuilder(request_code.substring(0, 5));
 
-        // For each entry found in the gpsGPGGAList ... // TODO limit this to 9 times and request visualisation for data at least 4 seconds apart
-        for (gpsGPGGA data: this.gpsGPGGAList) {
+        // For each entry found in the gpsGPGGAList ...
+        for (gpsGPGGA data : this.imageDataList) {
             // ... get the coordinates
             String coordinates = data.getCoordinates();
 
+            System.out.println(coordinates);
+
             // Build the request code
-            String request = request_code.substring(0, 5) + "T=" + coordinates + "\r";
+            request.append("T=").append(coordinates);
+        }
 
-            // Request the data
-            if (modem.write((request).getBytes())) {
-                System.out.println("Receiving gps image data ...");  // debug comment??
-                while (true) {
-                    try {
-                        // Read the bytes
-                        k = modem.read();
+        // finally finish the request with a \r
+        request.append("\r");
 
-                        // if -1 is read there was an error and the connection timed out
-                        if (k == -1) {
-                            System.out.println("Connection timed out.");
-                            break;
-                        }
+//        System.out.println(request.toString());  // debug comment
 
-                        // Add bytes to the image Byte List
-                        this.imagePackets.addToImageList((byte) k);
+        // Request the data
+        if (modem.write(request.toString().getBytes())) {
+            System.out.println("Receiving gps image data ...");  // debug comment??
+            while (true) {
+                try {
+                    // Read the bytes
+                    k = modem.read();
 
-                        // Detect end of line or end of transmission
-                        if (this.imagePackets.isTransmissionOver()) {
-                            // Name of the file
-                            String fileName = createFileName(Constants.GPS_IMAGES_DIR.getStr(), ".jpeg");
-
-                            // Save the image to a file
-                            this.imagePackets.saveToFile(fileName);
-
-                            // Clear the list so that the next image can be saved
-                            this.imagePackets.clearImageList();
-                            break;
-                        }
-
-
-                    } catch (Exception x) {
-                        System.out.println("Exception thrown: " + x.toString());
+                    // if -1 is read there was an error and the connection timed out
+                    if (k == -1) {
+                        System.out.println("Connection timed out.");
                         break;
                     }
+
+                    // Add bytes to the image Byte List
+                    this.imagePackets.addToImageList((byte) k);
+
+                    // Detect end of line or end of transmission
+                    if (this.imagePackets.isTransmissionOver()) {
+                        // Name of the file
+                        String fileName = createFileName(Constants.GPS_IMAGES_DIR.getStr(), ".jpeg");
+
+                        // Save the image to a file
+                        this.imagePackets.saveToFile(fileName);
+
+                        // Clear the list so that the next image can be saved
+                        this.imagePackets.clearImageList();
+                        break;
+                    }
+
+
+                } catch (Exception x) {
+                    System.out.println("Exception thrown: " + x.toString());
+                    break;
                 }
-            } else {
-                System.out.println("Failed to send gps code");
             }
+        } else {
+            System.out.println("Failed to send gps code");
         }
+
     }
 }
