@@ -177,6 +177,7 @@ public class GPSPackets implements DataPackets {
             try {
                 System.out.println("Waiting ....");
                 TimeUnit.SECONDS.sleep(5);
+
             } catch (InterruptedException interruptedException) {
                 System.out.println(interruptedException.toString());
                 return;

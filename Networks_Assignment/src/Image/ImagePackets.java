@@ -177,6 +177,7 @@ public class ImagePackets implements DataPackets {
 
                     // Add bytes to the image Byte List
                     this.image.add((byte)k);
+                    //System.out.println(k + " ");  // debug comment
 
                     // Detect end of image
                     if (isTransmissionOver()){

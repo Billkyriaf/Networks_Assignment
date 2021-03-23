@@ -30,6 +30,4 @@ public interface DataPackets {
      * @return name + dateTime
      */
     String createFileName(String directory, String file_extension);
-    
-
 }
