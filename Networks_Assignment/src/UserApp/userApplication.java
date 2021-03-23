@@ -52,11 +52,13 @@ public class userApplication {
         // Run some tests
         //echoPackets.getPackets();
 
-        //clear_image.getPackets();
+        clear_image.setCamera_commands("CAM=PTZ DIR=L");
+        for (int i = 0; i < 10; i++)
+            clear_image.getPackets();
 
         //corrupted_image.getPackets();
 
-        gpsData.getPackets();
+        //gpsData.getPackets();
 
         //echoErrors.getPackets();
 
