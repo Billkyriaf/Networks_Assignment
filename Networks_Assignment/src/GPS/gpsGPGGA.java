@@ -52,7 +52,7 @@ public class gpsGPGGA {
         String[] parsed_message = this.line.split(",|\\*");
 
         if (parsed_message.length == 16) {
-            this.utcTime = parsed_message[1];
+            this.utcTime = parsed_message[1].split("\\.")[0];  // keep only the hh mm ss part of the time
             this.latitude = parsed_message[2];
             this.NS_indicator = parsed_message[3];
             this.longitude = parsed_message[4];
