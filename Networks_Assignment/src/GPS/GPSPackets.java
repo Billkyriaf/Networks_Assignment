@@ -10,11 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 
 
 /**
@@ -42,6 +38,23 @@ public class GPSPackets implements DataPackets {
      * The {@link Structure.Connection} instance of the server connection
      */
     private final Connection connection;
+
+    /**
+     * This code is used to request from the server specific saved routes.
+     * <br>
+     *     Format: XPPPPLL
+     *     <ul>
+     *         <li>X: Number of the route 0 - 9</li>
+     *         <li>PPPP: Starting Point</li>
+     *         <li>LL: Number of data points 0 - 99</li>
+     *     </ul>
+     */
+    private String gpsLLCode = "";
+
+    /**
+     * Holds the utc time of the last gps data point
+     */
+    private String lastDataPointTime = "000000";
 
     /**
      * A List of all the {@link GPS.gpsGPGGA} lines received
@@ -83,7 +96,28 @@ public class GPSPackets implements DataPackets {
 
 
     /**
-     * Constructor of the class.
+     * Constructor of the class with gps_code LL parameters initialization.
+     *
+     * @param connection {@link #connection}
+     * @param gpsLLCode  {@link #gpsLLCode} pass empty string if not used
+     */
+    public GPSPackets(Connection connection, String gpsLLCode) {
+        this.connection = connection;
+
+        if (!gpsLLCode.isEmpty())
+            this.gpsLLCode = gpsLLCode;
+
+        this.gpsGPGGAList = new ArrayList<>();
+        this.gpsGPGSAList = new ArrayList<>();
+        this.gpsGPRMCList = new ArrayList<>();
+        this.imageDataList = new ArrayList<>();
+
+        // Init the image processing object
+        this.imagePackets = new ImagePackets(this.connection, false);
+    }
+
+    /**
+     * Default constructor.
      *
      * @param connection {@link #connection}
      */
@@ -98,7 +132,6 @@ public class GPSPackets implements DataPackets {
         // Init the image processing object
         this.imagePackets = new ImagePackets(this.connection, false);
     }
-
 
     /**
      * Requests gps data packages from the server. The packets are based on the NMEA protocol format.
@@ -121,67 +154,56 @@ public class GPSPackets implements DataPackets {
         String request_code = connection.getGps_code();
         int k; // input bytes
 
+        if (!this.gpsLLCode.isEmpty())
+            request_code = request_code.substring(0, 5) + this.gpsLLCode + "\r";
+
         // request 9 times every request is at least 4 seconds apart for the image representation requirements
-        for (int i = 0; i < 9; i++) {
-            // Request the gps data
-            if (modem.write((request_code).getBytes())) {
-                System.out.println("Receiving gps data ...");  // debug comment??
-                while (true) {
-                    try {
-                        // Read the bytes
-                        k = modem.read();
+        // Request the gps data
+        if (modem.write((request_code).getBytes())) {
+            System.out.println("Receiving gps data ...");  // debug comment??
+            while (true) {
+                try {
+                    // Read the bytes
+                    k = modem.read();
 
-                        // if -1 is read there was an error and the connection timed out
-                        if (k == -1) {
-                            System.out.println("Connection timed out reconnecting...");
+                    // if -1 is read there was an error and the connection timed out
+                    if (k == -1) {
+                        System.out.println("Connection timed out reconnecting...");
 
-                            // Delete the incomplete data
-                            this.gps_line.setLength(0);
+                        // Delete the incomplete data
+                        this.gps_line.setLength(0);
 
-                            // Repeat the transmission
-                            i--;
-
-                            this.connection.reconnect(76000, 10000);
-                            break;
-                        }
-
-                        // Add chars to the string line
-                        this.gps_line.append((char) k);
-
-
-                        // Detect end of line or end of transmission
-                        if (isTransmissionOver()) {
-                            System.out.println("Data received");
-                            // System.out.println("GPS data received: " + gps_line.toString()); // debug comment
-
-                            // Categorise the received data
-                            parseData();
-
-                            // Save data to file
-                            saveToFile(createFileName(Constants.GPS_DATA_DIR.getStr(), ".txt"));
-
-                            break;
-                        }
-
-                    } catch (Exception x) {
-                        System.out.println("Exception thrown: " + x.toString());
+                        this.connection.reconnect(76000, 10000);
                         break;
                     }
+
+                    // Add chars to the string line
+                    this.gps_line.append((char) k);
+
+
+                    // Detect end of line or end of transmission
+                    if (isTransmissionOver()) {
+                        System.out.println("Data received");
+                        // System.out.println("GPS data received: " + gps_line.toString()); // debug comment
+
+                        // Categorise the received data
+                        parseData();
+
+                        // Save data to file
+                        saveToFile(createFileName(Constants.GPS_DATA_DIR.getStr(), ".txt"));
+
+                        break;
+                    }
+
+                } catch (Exception x) {
+                    System.out.println("Exception thrown: " + x.toString());
+                    break;
                 }
-
-
-            } else {
-                System.out.println("Failed to send gps code");
             }
 
-            try {
-                System.out.println("Waiting ....");
-                TimeUnit.SECONDS.sleep(5);
 
-            } catch (InterruptedException interruptedException) {
-                System.out.println(interruptedException.toString());
-                return;
-            }
+        } else {
+            System.out.println("Failed to send gps code");
         }
 
         // Request visualization images
@@ -193,9 +215,9 @@ public class GPSPackets implements DataPackets {
      * {@link Structure.Constants#GPS_TRANSMISSION_END} and {@link Structure.Constants#GPS_DATA_LINE_END} strings.
      *
      * @return <ul>
-     *     <li>If {@link Structure.Constants#GPS_TRANSMISSION_START} is matched the function returns false.</li>
-     *     <li>If {@link Structure.Constants#GPS_TRANSMISSION_END} is matched the function returns true.</li>
-     *     <li>If {@link Structure.Constants#GPS_DATA_LINE_END} is matched the function returns false.</li>
+     * <li>If {@link Structure.Constants#GPS_TRANSMISSION_START} is matched the function returns false.</li>
+     * <li>If {@link Structure.Constants#GPS_TRANSMISSION_END} is matched the function returns true.</li>
+     * <li>If {@link Structure.Constants#GPS_DATA_LINE_END} is matched the function returns false.</li>
      * </ul>
      */
     @Override
@@ -310,7 +332,10 @@ public class GPSPackets implements DataPackets {
 
 
     /**
-     * Categorises data in the corresponding Lists based on the type of the protocol used
+     * Categorises data in the corresponding Lists based on the type of the protocol used. If the protocol is GPGGA the
+     * time difference between the last GPGGA data point and the current data point is calculated with
+     * {@link #timeDifference(String current_data_point_time)}. If the difference is more than a value and the
+     * {@link #imageDataList} has less than 9 data points the current data point is added to the list.
      */
     private void parseData() {
 
@@ -320,6 +345,14 @@ public class GPSPackets implements DataPackets {
                 gpsGPGGA tmp = new gpsGPGGA(line);
                 this.gpsGPGGAList.add(tmp);
                 this.gps_line.setLength(0);
+
+                // check the time of the gpgga data. If 4 seconds have passed add the Data to the imageDataList for visualization.
+                if (timeDifference(tmp.utcTime) > 10 && this.imageDataList.size() <= 9) {
+                    this.imageDataList.add(tmp);
+                    // Update the lastDataPointTime
+                    this.lastDataPointTime = tmp.utcTime;
+                }
+
             } else if (line.startsWith(Constants.GPGSA.getStr())) {
                 // save the GPGSA to the list and clear the buffer
                 gpsGPGSA tmp = new gpsGPGSA(line);
@@ -331,11 +364,6 @@ public class GPSPackets implements DataPackets {
                 this.gpsGPRMCList.add(tmp);
                 this.gps_line.setLength(0);
             }
-        }
-
-        // check if the gpsGPGGALis list is not empty and add the last item to the list for image data visualization
-        if (!this.gpsGPGGAList.isEmpty()) {
-            this.imageDataList.add(this.gpsGPGGAList.get(this.gpsGPGGAList.size() - 1));
         }
     }
 
@@ -358,7 +386,7 @@ public class GPSPackets implements DataPackets {
             // ... get the coordinates
             String coordinates = data.getCoordinates();
 
-            System.out.println(coordinates);
+//            System.out.println(coordinates);  // debug comment
 
             // Build the request code
             request.append("T=").append(coordinates);
@@ -409,5 +437,26 @@ public class GPSPackets implements DataPackets {
             System.out.println("Failed to send gps code");
         }
 
+    }
+
+    /**
+     * Finds the difference in seconds between the time param and the {@link #lastDataPointTime}
+     * @param time the time to compare. Must be in format hhmmss String
+     * @return the difference in seconds
+     */
+    private int timeDifference(String time){
+        int last_point_h = Integer.parseInt(this.lastDataPointTime.substring(0, 2)) * 3600;
+        int last_point_m = Integer.parseInt(this.lastDataPointTime.substring(2, 4)) * 60;
+        int last_point_s = Integer.parseInt(this.lastDataPointTime.substring(4, 6));
+
+        last_point_s += last_point_h + last_point_m;
+
+        int h = Integer.parseInt(time.substring(0, 2)) * 3600;
+        int m = Integer.parseInt(time.substring(2, 4)) * 60;
+        int s = Integer.parseInt(time.substring(4, 6));
+
+        s += h + m;
+
+        return s - last_point_s;
     }
 }
