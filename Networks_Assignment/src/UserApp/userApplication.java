@@ -42,7 +42,7 @@ public class userApplication {
         ImagePackets corrupted_image = new ImagePackets(connection, true);
 
         // GPS packets
-        GPSPackets gpsData = new GPSPackets(connection);
+        GPSPackets gpsData = new GPSPackets(connection, "R=9050099");
 
         EchoErrors echoErrors = new EchoErrors(connection, 1000);
 
@@ -52,13 +52,13 @@ public class userApplication {
         // Run some tests
         //echoPackets.getPackets();
 
-        clear_image.setCamera_commands("CAM=PTZ DIR=L");
-        for (int i = 0; i < 10; i++)
-            clear_image.getPackets();
+//        clear_image.setCamera_commands("CAM=PTZ DIR=L");
+//        for (int i = 0; i < 10; i++)
+//            clear_image.getPackets();
 
         //corrupted_image.getPackets();
 
-        //gpsData.getPackets();
+        gpsData.getPackets();
 
         //echoErrors.getPackets();
 

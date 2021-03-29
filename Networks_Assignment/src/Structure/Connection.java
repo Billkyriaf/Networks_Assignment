@@ -11,7 +11,7 @@ public class Connection {
     private final String echo_code;
     private String image_code;
     private String image_code_error;
-    private final String gps_code;
+    private String gps_code;
     private final String ack_code;
     private final String nack_code;
 
