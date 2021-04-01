@@ -1,4 +1,5 @@
 import glob
+from collections import Counter
 from io import TextIOWrapper
 
 import numpy as np
@@ -37,6 +38,13 @@ def readEchoResponseTimes(file: TextIOWrapper):
     return response_times
 
 
+def readRetransmissions(file: TextIOWrapper):
+    retransmissions = [int(line[line.find("retransmissions: ") + 16:]) for line in file if
+                       line.startswith(
+                           'PSTART')]
+    return retransmissions
+
+
 def readSessionCodes(file: TextIOWrapper):
     codes = []
     for line in file:
@@ -67,12 +75,32 @@ def plotList(data: list):
     pio.kaleido.scope.default_height = 1080
     pio.kaleido.scope.default_scale = 1
 
-    fig.write_image("fig.svg")
+    # fig.write_image("fig.svg")
+    fig.show()
+
+
+def plotBarGraph(data: dict):
+    x_axis = list(data.keys())
+    y_axis = list(data.values())
+    trace = [go.Bar(x=x_axis, y=y_axis)]
+
+    layout = go.Layout(barmode='group', bargroupgap=0)
+    fig = go.Figure(data=trace, layout=layout)
+
+    iplot(fig)
 
 
 if __name__ == '__main__':
-    fs = findFiles(Con.ECHO_DATA_DIR, Con.ECHO_FILE_NAME, '.txt')
+    fs = findFiles(Con.ERR_ECHO_DATA_DIR, Con.ERR_ECHO_FILE_NAME, '.txt')
 
     for f in fs:
         response = readEchoResponseTimes(f)
-        plotList(response)
+        data_dict = Counter(response)
+        print(data_dict)
+        plotBarGraph(data_dict)
+
+        # response_2 = readEchoResponseTimes(f)
+        # data_dict_2 = Counter(response_2)
+        # print(data_dict_2)
+        # plotBarGraph(data_dict_2)
+        # plotList(response)
