@@ -92,7 +92,10 @@ public class EchoPackets implements DataPackets {
 
 
     /**
-     * Receives large number of echo packets from the server. The packets have the form:
+     * Receives large number of echo packets from the server. The function runs a loop for 5 minutes. The total number
+     * of packets received is determined by the speed of the connection. A slow speed is recommended (below 10kbps).
+     * <br>
+     * The packets have the form:
      * <p>
      * PSTART DD-MM-YYYY HH-MM-SS PC PSTOP
      * <p>
@@ -108,14 +111,14 @@ public class EchoPackets implements DataPackets {
         long start_time;  // The starting time of the request
         long end_time;  // The time all the data for a certain request are completely received
 
-        long time = System.nanoTime();
+        long time = System.currentTimeMillis();  // The time used to measure the duration of the complete request
 
         System.out.println("Receiving echo packets ...");  // DEBUG comment??
 
         // Request echo_packet based on the default_packet_number
-        //for (int i = 0; i < this.request_packet_number; i++) {
-        while ((System.nanoTime() - time) / 1000000.0 < 240000.0){
-            start_time = System.nanoTime();  // Take a time measurement before the request is sent
+        //for (int i = 0; i < this.request_packet_number; i++) {  // DEBUG comment requests specific amount of packets
+        while ((System.currentTimeMillis() - time) < 300000) {  // comment if you uncomment the above line
+            start_time = System.currentTimeMillis();  // Take a time measurement before the request is sent
 
             // Request the packet
             if (this.connection.getModem().write(this.connection.getEcho_code().getBytes())) {
@@ -125,19 +128,30 @@ public class EchoPackets implements DataPackets {
                         // Read the next byte
                         data_byte = this.connection.getModem().read();
 
-                    } catch (Exception x) {
-                        // any read related exceptions are caught
-                        System.out.println("Exception thrown: " + x.toString());
+                    } catch (Exception e) {
+                        // If any exception is thrown here we exit the program because something has gone wrong and there
+                        // is no chance of recovering.
+                        System.out.println("Exception thrown: " + e.toString());
 
-                        // Reset packet line
-                        this.packet.setLength(0);
-                        break;
+                        System.out.println("Failed to receive echo packets. Terminating...");
+                        return;
                     }
 
-                    // if -1 is read there was an error and the connection timed out or dropped unexpectedly
                     if (data_byte == -1) {
-                        System.out.println("Connection timed out.");  // DEBUG comment??
-                        break;
+                        // if -1 is read there was an error and the connection timed out or dropped unexpectedly
+                        System.out.println("Connection timed out. Reconnecting...");  // DEBUG comment??
+
+                        // Try to reconnect with the server
+                        if (this.connection.reconnect(3500, 10000)) {
+                            // Drop the incomplete packet
+                            this.packet.setLength(0);
+
+                            System.out.println("Reconnected successfully. Continuing...");
+                            break;
+                        } else {
+                            System.out.println("Reconnection failed. Check if the codes have expired!!");
+                            return;
+                        }
                     }
 
                     // Append to the packet string
@@ -146,11 +160,11 @@ public class EchoPackets implements DataPackets {
                     // Detect end of echo packet
                     if (isTransmissionOver()) {
                         // If the packet is complete we take a second time measurement ...
-                        end_time = System.nanoTime();
+                        end_time = System.currentTimeMillis();
                         // ...and calculate the time that took the packet to arrive after the request was sent in ms.
-                        double duration = (end_time - start_time) / 1000000.0;
+                        long duration = (end_time - start_time);
 
-                        response_time = (int) Math.round(duration);
+                        response_time = Math.round(duration);
 
                         // System.out.println(response_time + " ms"); // DEBUG comment
                         break;
@@ -168,7 +182,8 @@ public class EchoPackets implements DataPackets {
                 }
 
             } else {
-                System.out.println("Failed to send echo code request");
+                System.out.println("Unrecoverable exception occurred. Total echo packets received before error: " +
+                        this.echo_packets.size() + ". Terminating...");
                 break;
             }
         }
@@ -184,9 +199,10 @@ public class EchoPackets implements DataPackets {
      */
     @Override
     public boolean isTransmissionOver() {
-        if (this.packet.length() < Constants.PACKET_END.getStr().length()) {
+        if (this.packet.length() < Constants.PACKET_END.getStr().length())
             return false;
-        } else return this.packet.toString().endsWith(Constants.PACKET_END.getStr());
+        else
+            return this.packet.toString().endsWith(Constants.PACKET_END.getStr());
     }
 
     /**
@@ -203,20 +219,24 @@ public class EchoPackets implements DataPackets {
 
         try {
             file.getParentFile().mkdirs();
-        }
-        catch (SecurityException securityException) {
-            System.out.println("Failed to create file: " + securityException.toString());
+        } catch (SecurityException e) {
+            System.out.println("Failed to create file with exception: " + e.toString());
             return;
         }
 
-        try {
-            FileWriter writer = new FileWriter(file);
+        try (FileWriter writer = new FileWriter(file)) {
 
             // Write the request codes
-            writer.write("####\n" + this.connection.getEcho_code() + this.connection.getImage_code() +
-                    this.connection.getImage_code_error() + this.connection.getGps_code() +
-                    this.connection.getAck_code() + this.connection.getNack_code() + "###" +
-                    System.lineSeparator());
+            writer.write(
+                    "####" + System.lineSeparator() +
+                            this.connection.getEcho_code().substring(0, 5) + " " +
+                            this.connection.getImage_code().substring(0, 5) + " " +
+                            this.connection.getImage_code_error().substring(0, 5) + " " +
+                            this.connection.getGps_code().substring(0, 5) + " " +
+                            this.connection.getAck_code().substring(0, 5) + " " +
+                            this.connection.getNack_code().substring(0, 5) +
+                            System.lineSeparator() + "###" + System.lineSeparator()
+            );
 
             // For each entry in the packets List...
             for (String str : this.echo_packets) {
@@ -230,7 +250,7 @@ public class EchoPackets implements DataPackets {
             this.echo_packets.clear();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Failed to write to file with exception: " + e.toString());
         }
     }
 
@@ -240,7 +260,7 @@ public class EchoPackets implements DataPackets {
      *
      * <b>Note: </b> The directory must end with / and the file extension must start with .
      *
-     * @param directory The directory the file will be saved.
+     * @param directory      The directory the file will be saved.
      * @param file_extension The type of the file e.g.  .txt
      * @return directory + name + date + file_extension
      */
