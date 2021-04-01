@@ -25,9 +25,8 @@ public class gpsGPGSA {
      * The GPGSA protocol provides all the satellites used for the data provided. The satellites list stores the number
      * of each satellite used in String format.
      * <br>
-     *     <b>Note: </b> If a satellite is used the number of the satellite is stored if a satellite is not used an
-     *     empty String is stored.
-     *
+     * <b>Note: </b> If a satellite is used the number of the satellite is stored if a satellite is not used an
+     * empty String is stored.
      */
     List<String> satellites;
     String pdop;
@@ -49,7 +48,7 @@ public class gpsGPGSA {
      *
      * @param line {@link #line}
      */
-    public gpsGPGSA(String line){
+    public gpsGPGSA(String line) {
         this.line = line;
         this.satellites = new ArrayList<>();
 
@@ -64,14 +63,14 @@ public class gpsGPGSA {
             this.hdop = parsed_message[16];
             this.vdop = parsed_message[17];
             this.checksum = parsed_message[18];
-        }
-        else {
+        } else {
             System.out.println("Error parsing data too many or too few arguments!");
         }
     }
 
     /**
      * Gets the raw data line String
+     *
      * @return {@link #line}
      */
     public String getLine() {

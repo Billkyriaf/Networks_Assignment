@@ -42,12 +42,12 @@ public class GPSPackets implements DataPackets {
     /**
      * This code is used to request from the server specific saved routes.
      * <br>
-     *     Format: XPPPPLL
-     *     <ul>
-     *         <li>X: Number of the route 0 - 9</li>
-     *         <li>PPPP: Starting Point</li>
-     *         <li>LL: Number of data points 0 - 99</li>
-     *     </ul>
+     * Format: XPPPPLL
+     * <ul>
+     *     <li>X: Number of the route 0 - 9</li>
+     *     <li>PPPP: Starting Point</li>
+     *     <li>LL: Number of data points 0 - 99</li>
+     * </ul>
      */
     private String gpsLLCode = "";
 
@@ -133,6 +133,7 @@ public class GPSPackets implements DataPackets {
         this.imagePackets = new ImagePackets(this.connection, false);
     }
 
+
     /**
      * Requests gps data packages from the server. The packets are based on the NMEA protocol format.
      * <br>
@@ -157,24 +158,45 @@ public class GPSPackets implements DataPackets {
         if (!this.gpsLLCode.isEmpty())
             request_code = request_code.substring(0, 5) + this.gpsLLCode + "\r";
 
-        // request 9 times every request is at least 4 seconds apart for the image representation requirements
-        // Request the gps data
-        if (modem.write((request_code).getBytes())) {
-            System.out.println("Receiving gps data ...");  // debug comment??
-            while (true) {
-                try {
-                    // Read the bytes
-                    k = modem.read();
+        // This outer loop serves the purpose of requesting data again if a connection drops. The loop allows up to 3
+        // tries to recover from a dropped connection. After that the program will exit.
+        for (int i = 0; i <= 3; i++) {
+            // Request the gps data
+            if (modem.write((request_code).getBytes())) {
+                System.out.println("Receiving gps data ...");
+                while (true) {
+                    try {
+                        // Read the bytes
+                        k = modem.read();
+                    } catch (Exception e) {
+                        // If any exception is thrown here we exit the program because something has gone wrong and there
+                        // is no chance of recovering.
+                        System.out.println("Exception thrown: " + e.toString());
+
+                        System.out.println("Failed to receive gps packets. Terminating...");
+                        return;
+                    }
 
                     // if -1 is read there was an error and the connection timed out
                     if (k == -1) {
-                        System.out.println("Connection timed out reconnecting...");
 
-                        // Delete the incomplete data
-                        this.gps_line.setLength(0);
+                        // if -1 is read there was an error and the connection timed out or dropped unexpectedly
+                        System.out.println("Connection timed out. Reconnecting...");
 
-                        this.connection.reconnect(76000, 10000);
-                        break;
+                        // Try to reconnect with the server
+                        if (this.connection.reconnect(80000, 10000)) {
+                            // Drop the incomplete packet
+                            this.gps_line.setLength(0);
+
+                            // Clear the old data to receive to new
+                            this.lines.clear();
+
+                            System.out.println("Reconnected successfully. Continuing...");
+                            break;
+                        } else {
+                            System.out.println("Reconnection failed. Check if the codes have expired!!");
+                            return;
+                        }
                     }
 
                     // Add chars to the string line
@@ -195,15 +217,25 @@ public class GPSPackets implements DataPackets {
                         break;
                     }
 
-                } catch (Exception x) {
-                    System.out.println("Exception thrown: " + x.toString());
+
+                }
+
+                if (!this.lines.isEmpty()) {
+                    // if there are data saved brake from the outer loop else request data again
+                    // (possibly the connection dropped and the program reconnected)
                     break;
                 }
+
+            } else {
+                System.out.println("Unrecoverable exception occurred while receiving GPS data. Terminating...");
+                return;
             }
+        }
 
-
-        } else {
-            System.out.println("Failed to send gps code");
+        // If the for loop exits and no data are saved we exit the function
+        if (this.lines.isEmpty()) {
+            System.out.println("Detected multiple connection fails. Terminating...");
+            return;
         }
 
         // Request visualization images
@@ -346,8 +378,8 @@ public class GPSPackets implements DataPackets {
                 this.gpsGPGGAList.add(tmp);
                 this.gps_line.setLength(0);
 
-                // check the time of the gpgga data. If 4 seconds have passed add the Data to the imageDataList for visualization.
-                if (timeDifference(tmp.utcTime) > 10 && this.imageDataList.size() <= 9) {
+                // check the time of the gpgga data. If 10 seconds have passed add the Data to the imageDataList for visualization.
+                if (timeDifference(tmp.utcTime) >= 10 && this.imageDataList.size() <= 9) {
                     this.imageDataList.add(tmp);
                     // Update the lastDataPointTime
                     this.lastDataPointTime = tmp.utcTime;
@@ -381,12 +413,17 @@ public class GPSPackets implements DataPackets {
         int k;
         StringBuilder request = new StringBuilder(request_code.substring(0, 5));
 
+        if (this.imageDataList.isEmpty()) {
+            System.out.println("Could not find data for image request. Terminating...");
+            return;
+        }
+
         // For each entry found in the gpsGPGGAList ...
         for (gpsGPGGA data : this.imageDataList) {
             // ... get the coordinates
             String coordinates = data.getCoordinates();
 
-//            System.out.println(coordinates);  // debug comment
+            //System.out.println(coordinates);  // debug comment
 
             // Build the request code
             request.append("T=").append(coordinates);
@@ -395,11 +432,11 @@ public class GPSPackets implements DataPackets {
         // finally finish the request with a \r
         request.append("\r");
 
-//        System.out.println(request.toString());  // debug comment
+        //System.out.println(request.toString());  // debug comment
 
         // Request the data
         if (modem.write(request.toString().getBytes())) {
-            System.out.println("Receiving gps image data ...");  // debug comment??
+            System.out.println("Receiving gps image data ...");
             while (true) {
                 try {
                     // Read the bytes
@@ -407,8 +444,8 @@ public class GPSPackets implements DataPackets {
 
                     // if -1 is read there was an error and the connection timed out
                     if (k == -1) {
-                        System.out.println("Connection timed out.");
-                        break;
+                        System.out.println("Connection timed out. Terminating...");
+                        return;
                     }
 
                     // Add bytes to the image Byte List
@@ -428,29 +465,31 @@ public class GPSPackets implements DataPackets {
                     }
 
 
-                } catch (Exception x) {
-                    System.out.println("Exception thrown: " + x.toString());
-                    break;
+                } catch (Exception e) {
+                    System.out.println("Unrecoverable exception occurred: " + e.toString() + " Terminating...");
+                    return;
                 }
             }
         } else {
             System.out.println("Failed to send gps code");
         }
-
     }
 
     /**
      * Finds the difference in seconds between the time param and the {@link #lastDataPointTime}
+     *
      * @param time the time to compare. Must be in format hhmmss String
      * @return the difference in seconds
      */
-    private int timeDifference(String time){
+    private int timeDifference(String time) {
+        // Parse the time of the last gps packet received and convert it in seconds
         int last_point_h = Integer.parseInt(this.lastDataPointTime.substring(0, 2)) * 3600;
         int last_point_m = Integer.parseInt(this.lastDataPointTime.substring(2, 4)) * 60;
         int last_point_s = Integer.parseInt(this.lastDataPointTime.substring(4, 6));
 
         last_point_s += last_point_h + last_point_m;
 
+        // Parse the time of the current gps packet and convert it in seconds
         int h = Integer.parseInt(time.substring(0, 2)) * 3600;
         int m = Integer.parseInt(time.substring(2, 4)) * 60;
         int s = Integer.parseInt(time.substring(4, 6));

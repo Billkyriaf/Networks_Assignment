@@ -42,7 +42,7 @@ public class gpsGPRMC {
      *
      * @param line {@link #line}
      */
-    public gpsGPRMC(String line){
+    public gpsGPRMC(String line) {
         this.line = line;
 
         // Split the line on every , and *
@@ -69,6 +69,7 @@ public class gpsGPRMC {
 
     /**
      * Gets the raw data line String
+     *
      * @return {@link #line}
      */
     public String getLine() {
@@ -83,19 +84,19 @@ public class gpsGPRMC {
      * The String values are converted to long and the seconds are rounded to the nearest Integer because the server
      * requires all the coordinates be Integers.
      * <br>
-     *     <b>Note: </b> The Server only accepts latitude degrees from 0° to 99° as it uses only 2 digits for degrees.
+     * <b>Note: </b> The Server only accepts latitude degrees from 0° to 99° as it uses only 2 digits for degrees.
      *
      * @return The function returns the String AABBCCDDEEFF where:
-     *          <ul>
-     *              <li>AA: longitude degrees</li>
-     *              <li>BB: longitude minutes</li>
-     *              <li>CC: longitude seconds</li>
-     *              <li>DD: latitude degrees</li>
-     *              <li>EE: latitude minutes</li>
-     *              <li>FF: latitude seconds</li>
-     *          </ul>
+     * <ul>
+     *     <li>AA: longitude degrees</li>
+     *     <li>BB: longitude minutes</li>
+     *     <li>CC: longitude seconds</li>
+     *     <li>DD: latitude degrees</li>
+     *     <li>EE: latitude minutes</li>
+     *     <li>FF: latitude seconds</li>
+     * </ul>
      */
-    public String getCoordinates(){
+    public String getCoordinates() {
         // Separate the degrees from minutes and seconds
         String latitude_deg = this.latitude.substring(0, 2);
         String latitude_min = this.latitude.substring(2, 4);
@@ -104,9 +105,9 @@ public class gpsGPRMC {
         // Calculate the seconds
         double lat_sec = Double.parseDouble(latitude_sec);
         lat_sec = lat_sec * 60;
-        latitude_sec = String.valueOf((int)Math.round(lat_sec));
+        latitude_sec = String.valueOf((int) Math.round(lat_sec));
 
-        if (latitude_sec.length() != 2 ){
+        if (latitude_sec.length() != 2) {
             latitude_sec = "0" + latitude_sec;
         }
 
@@ -116,7 +117,7 @@ public class gpsGPRMC {
         String longitude_deg = this.longitude.substring(1, 3);
 
         // If the longitude is more that 90° we keep only the 2 most significant digits
-        if(longitude_deg.startsWith("0")){
+        if (longitude_deg.startsWith("0")) {
             longitude_deg = longitude_deg.substring(1);
         }
 
@@ -126,10 +127,10 @@ public class gpsGPRMC {
         // Calculate the seconds
         double long_sec = Double.parseDouble(longitude_sec);
         long_sec = long_sec * 60;
-        longitude_sec = String.valueOf((int)Math.round(long_sec));
+        longitude_sec = String.valueOf((int) Math.round(long_sec));
 
         // If the seconds are less that 10 a 0 is added in front of the number
-        if (longitude_sec.length() != 2 ){
+        if (longitude_sec.length() != 2) {
             longitude_sec = "0" + longitude_sec;
         }
 
