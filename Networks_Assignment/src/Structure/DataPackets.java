@@ -3,6 +3,10 @@ package Structure;
 /**
  * This interface dictates the methods needed for all the types of connections.
  * For easier data manipulation all packets will be saved to the respected file.
+ *
+ * @author Vasilis Kyriafinis
+ * @version 1.0
+ * @since 1.0
  */
 public interface DataPackets {
 
@@ -13,19 +17,22 @@ public interface DataPackets {
 
     /**
      * Checks if the transmission is over so the connection does not timeout
+     *
      * @return true if the transmission is over false else
      */
     boolean isTransmissionOver();
 
     /**
      * Saves data to file for later usage
+     *
      * @param file_name the name of the file
      */
     void saveToFile(String file_name);
 
     /**
      * Returns a unique file name based on the current dateTime
-     * @param directory the directory to save the file
+     *
+     * @param directory      the directory to save the file
      * @param file_extension the file extension
      * @return name + dateTime
      */

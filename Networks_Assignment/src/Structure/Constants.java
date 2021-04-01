@@ -1,5 +1,13 @@
 package Structure;
 
+/**
+ * The Constants enum holds all the useful string used in the code. This is done for convenience and easy maintenance in
+ * case something changes in the future.
+ *
+ * @author Vasilis Kyriafinis
+ * @version 1.0
+ * @since 1.0
+ */
 public enum Constants {
     // AT Structure.Commands
     AT("AT\r"),
@@ -49,11 +57,11 @@ public enum Constants {
 
     private final String constant;
 
-    Constants(String constant){
+    Constants(String constant) {
         this.constant = constant;
     }
 
-    public String getStr(){
+    public String getStr() {
         return this.constant;
     }
 }

@@ -4,6 +4,10 @@ import ithakimodem.Modem;
 
 /**
  * The connection class handles the initial connection to the server and the connection mode selection.
+ *
+ * @author Vasilis Kyriafinis
+ * @version 1.0
+ * @since 1.0
  */
 public class Connection {
 
@@ -43,14 +47,11 @@ public class Connection {
         this.ack_code = ack + '\r';
         this.nack_code = nack + '\r';
 
-        testConnection();
-
         // Start the data connection with the server
-        if(startDataConnection()){
-            System.out.println("Connection successful");
-        }
-        else {
-            System.out.println("Connection failed");
+        if (startDataConnection()) {
+            System.out.println("Connection successful!");
+        } else {
+            System.out.println("Connection failed. Terminating...");
 
             // Close the connection
             this.modem.close();
@@ -73,7 +74,7 @@ public class Connection {
         return image_code;
     }
 
-    public void setImage_code(String code){
+    public void setImage_code(String code) {
         this.image_code = code;
     }
 
@@ -97,68 +98,20 @@ public class Connection {
         return nack_code;
     }
 
-
-    /**
-     * Test the connection to the modem with AT commands. The test connection must only be called before the modem enters
-     * data mode.
-     */
-    private void testConnection() {
-        // TODO implement correctly
-        StringBuilder packet = new StringBuilder();  // Complete packet
-
-        if (this.modem.write("at\r".getBytes())) {
-            int k;
-
-            while (true) {
-                try {
-                    // Read from input stream
-                    k = this.modem.read();
-
-                    // Check for errors
-                    if (k == -1) {
-                        System.out.println("Connection timed out.");
-                        break;
-                    }
-
-                    // Build the message
-                    packet.append((char) k);
-
-                    // Check for termination sequence
-                    if (isMessageOver(packet.toString(), Constants.AT_END.getStr())) {
-                        break;
-                    }
-                } catch (Exception x) {
-                    System.out.println("Exception caught" + x.toString());
-                    break;
-                }
-            }
-
-            System.out.println(packet.toString());
-
-        } else {
-            System.out.println("Failed to send command");
-        }
+    public void setModemSpeed(int speed){
+        this.modem.setSpeed(speed);
     }
 
-
-    /**
-     * Compares a message's end with a pattern string
-     * @param message the message that is received
-     * @param pattern the patter that needs to be found to the end of the message
-     * @return True if the pattern matched false if not or if the message was too short
-     */
-    public boolean isMessageOver(String message, String pattern) {
-        if (message.length() < pattern.length()) {
-            return false;
-        } else return message.endsWith(pattern);
+    public void setModemTimeout(int timeout){
+        this.modem.setTimeout(timeout);
     }
-
 
     /**
      * Starts the data connection with the server
+     *
      * @return True if the connection is successful false else
      */
-    private boolean startDataConnection(){
+    private boolean startDataConnection() {
         int k;  // The input buffer byte
         StringBuilder packet = new StringBuilder();  // Complete packet
 
@@ -199,16 +152,14 @@ public class Connection {
         }
     }
 
-    //TODO make a reconnect function for when the connection drops
-
     /**
      * The reconnect function re establishes the connection with the server if the server
      *
-     * @param speed Speed of the connection
+     * @param speed   Speed of the connection
      * @param timeout Timeout time in seconds for the connection
      * @return If the connection is successful the function returns true else it returns false
      */
-    public boolean reconnect(int speed, int timeout){
+    public boolean reconnect(int speed, int timeout) {
         this.modem = null;
 
         // Create a new Modem object
@@ -219,17 +170,34 @@ public class Connection {
         modem.setTimeout(timeout);  // The timeout time. After this time with no activity the connection times out
 
         // Start the data connection with the server
-        if(startDataConnection()){
+        if (startDataConnection()) {
             System.out.println("Connection successful");
             return true;
-        }
-        else {
+        } else {
             System.out.println("Connection failed");
 
             // Close the connection
-            this.modem.close();
+            try {
+                this.modem.close();
+            } catch (Exception e) {
+                System.out.println(e.toString());
+            }
 
             return false;
         }
+    }
+
+    /**
+     * Compares a message's end with a pattern string
+     *
+     * @param message the message that is received
+     * @param pattern the patter that needs to be found to the end of the message
+     * @return True if the pattern matched false if not or if the message was too short
+     */
+    public boolean isMessageOver(String message, String pattern) {
+        if (message.length() < pattern.length())
+            return false;
+        else
+            return message.endsWith(pattern);
     }
 }

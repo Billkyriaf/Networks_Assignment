@@ -53,10 +53,11 @@ public class ImagePackets implements DataPackets {
 
     /**
      * Constructor
+     *
      * @param connection the connection object
      * @param has_errors determines if the requested image will have errors or it will be clear
      */
-    public ImagePackets(Connection connection, boolean has_errors){
+    public ImagePackets(Connection connection, boolean has_errors) {
         this.connection = connection;
         this.camera_commands = null;
         this.image = new ArrayList<>();
@@ -65,11 +66,12 @@ public class ImagePackets implements DataPackets {
 
     /**
      * Constructor
-     * @param connection the connection object
+     *
+     * @param connection      the connection object
      * @param camera_commands special camera commands (direction, size, etc)
-     * @param has_errors determines if the requested image will have errors or it will be clear
+     * @param has_errors      determines if the requested image will have errors or it will be clear
      */
-    public ImagePackets(Connection connection, String camera_commands, boolean has_errors){
+    public ImagePackets(Connection connection, String camera_commands, boolean has_errors) {
         this.connection = connection;
         setCamera_commands(camera_commands);
         this.image = new ArrayList<>();
@@ -79,6 +81,7 @@ public class ImagePackets implements DataPackets {
 
     /**
      * Sets {@link #camera_commands} and updates the values in the {@link #connection} object
+     *
      * @param camera_commands the extra camera parameters
      */
     public void setCamera_commands(String camera_commands) {
@@ -106,32 +109,35 @@ public class ImagePackets implements DataPackets {
 
     /**
      * Sets the {@link #has_errors} value.
+     *
      * @param has_errors true if the images requested will have errors false else
      */
-    public void setHas_errors(boolean has_errors){
+    public void setHas_errors(boolean has_errors) {
         this.has_errors = has_errors;
     }
 
     /**
      * Gets the {@link #has_errors} value
+     *
      * @return {@link #has_errors} current value
      */
-    public boolean getHas_errors(){
+    public boolean getHas_errors() {
         return this.has_errors;
     }
 
     /**
      * Adds a byte to the {@link #image} List
+     *
      * @param k byte to add
      */
-    public void addToImageList(byte k){
+    public void addToImageList(byte k) {
         this.image.add(k);
     }
 
     /**
      * Clears the {@link #image} List from all the bytes stored
      */
-    public void clearImageList(){
+    public void clearImageList() {
         this.image.clear();
     }
 
@@ -142,7 +148,7 @@ public class ImagePackets implements DataPackets {
      *     <li>Images with no errors</li>
      *     <li>Images with errors</li>
      * </ul>
-     *
+     * <p>
      * The requested image type is determined by the {@link #has_errors} attribute. Every received image is saved to a
      * file with the function {@link #saveToFile(String file_name)}
      */
@@ -154,16 +160,16 @@ public class ImagePackets implements DataPackets {
         Modem modem = this.connection.getModem();
 
         // Choose from between a request with errors and an error free request
-        if (this.has_errors){
+        if (this.has_errors) {
             request_code = this.connection.getImage_code_error();
-        }
-        else {
+        } else {
             request_code = this.connection.getImage_code();
         }
 
         // Request the image
         if (modem.write(request_code.getBytes())) {
             System.out.println("Receiving image ...");
+
             while (true) {
                 try {
                     // Read the bytes
@@ -175,20 +181,24 @@ public class ImagePackets implements DataPackets {
                         break;
                     }
 
-                    // Add bytes to the image Byte List
-                    this.image.add((byte)k);
-                    //System.out.println(k + " ");  // debug comment
+                } catch (Exception e) {
+                    // If any exception is thrown here we exit the program because something has gone wrong and there
+                    // is no chance of recovering.
+                    System.out.println("Exception thrown: " + e.toString());
 
-                    // Detect end of image
-                    if (isTransmissionOver()){
-                        // Finally the image to the file
-                        saveToFile(createFileName(Constants.IMAGES_DATA_DIR.getStr(), ".jpeg"));
-                        this.image.clear();
-                        break;
-                    }
+                    System.out.println("Failed to receive image. Terminating...");
+                    return;
+                }
 
-                } catch (Exception x) {
-                    System.out.println("Exception thrown: " + x.toString());
+                // Add bytes to the image Byte List
+                this.image.add((byte) k);
+                //System.out.println(k + " ");  // debug comment
+
+                // Detect end of image
+                if (isTransmissionOver()) {
+                    // Finally the image to the file
+                    saveToFile(createFileName(Constants.IMAGES_DATA_DIR.getStr(), ".jpeg"));
+                    this.image.clear();
                     break;
                 }
             }
@@ -196,12 +206,13 @@ public class ImagePackets implements DataPackets {
             System.out.println("Image received\n\n");
 
         } else {
-            System.out.println("Failed to send image code");
+            System.out.println("Unrecoverable exception occurred while receiving image. Terminating...");
         }
     }
 
     /**
      * Compares the last to byte elements of the {@link #image} list with 0xFF 0xD9 bytes (jpeg file ending bytes)
+     *
      * @return true if both bytes are found false else
      */
     @Override
@@ -216,6 +227,7 @@ public class ImagePackets implements DataPackets {
 
     /**
      * Save the image stored in the {@link #image} List as bytes to a .jpeg file.
+     *
      * @param file_name the name of the file
      */
     @Override
@@ -248,6 +260,7 @@ public class ImagePackets implements DataPackets {
 
     /**
      * Gets the current date time and formats it "yyyy-MM-dd HH-mm-ss"
+     *
      * @return name + date + .jpeg
      */
     @Override
